@@ -1,0 +1,86 @@
+type Player {
+    playerId: ID!
+    username: String!
+    region: String!
+    rating: Int!
+    createdAt: String
+}
+
+type Room {
+    roomId: ID!
+    roomName: String!
+    roomMap: String!
+    roomStatus: String!
+    owner: Player!
+    playersCount: Int!
+    maxPlayers: Int!
+    avgRating: Float!
+    createdAt: String!
+    players: [Player]
+}
+
+type RoomPage {
+    content: [Room!]!
+    pageNumber: Int!
+    pageSize: Int!
+    totalElements: Int!
+    totalPages: Int!
+    last: Boolean!
+}
+
+type Query {
+    playerById(id: ID!): Player
+
+    rooms(
+        page: Int = 0,
+        size: Int = 10,
+        roomStatus: String,
+        roomMap: String
+    ): RoomPage
+
+    roomById(id: ID!): Room
+}
+
+input PlayerInput {
+    username: String!
+    region: String!
+    rating: Int!
+}
+
+input CreateRoomInput {
+    roomName: String!
+    roomMap: String!
+    roomStatus: String!
+    maxPlayers: Int!
+    ownerId: ID!
+}
+
+input UpdateRoomInput {
+    roomName: String!
+    roomMap: String!
+    maxPlayers: Int!
+}
+
+input JoinRoomInput {
+    roomId: ID!
+    userId: ID!
+}
+
+input LeaveRoomInput {
+    roomId: ID!
+    userId: ID!
+}
+
+type Mutation {
+    createPlayer(input: PlayerInput!): Player
+
+    createRoom(input: CreateRoomInput!): Room
+
+    updateRoom(id: ID!, input: UpdateRoomInput!): Room
+
+    deleteRoom(id: ID!): ID
+
+    joinRoom(input: JoinRoomInput!): Room
+
+    leaveRoom(input: LeaveRoomInput!): Room
+}
