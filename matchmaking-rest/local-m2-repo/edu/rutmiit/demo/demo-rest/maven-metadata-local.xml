@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<metadata>
+  <groupId>edu.rutmiit.demo</groupId>
+  <artifactId>demo-rest</artifactId>
+  <versioning>
+    <versions>
+      <version>0.0.1-SNAPSHOT</version>
+    </versions>
+    <lastUpdated>20251015203005</lastUpdated>
+  </versioning>
+</metadata>
