@@ -31,26 +31,6 @@ services:
     networks:
       - microservices-net
 
-  # Инфраструктура: CI/CD
-  jenkins:
-    image: jenkins/jenkins:lts
-    container_name: jenkins
-    user: root
-    ports:
-      - "8081:8080"
-      - "50000:50000"
-    volumes:
-      - jenkins-data:/var/jenkins_home
-      - /var/run/docker.sock:/var/run/docker.sock
-    networks:
-      - microservices-net
-    healthcheck:
-      test: ["CMD-SHELL", "curl -f http://localhost:8080/login || exit 1"]
-      interval: 30s
-      timeout: 10s
-      retries: 5
-      start_period: 40s
-
   # Микросервисы
   audit-service:
     build: ./audit-service
@@ -94,6 +74,3 @@ services:
 networks:
   microservices-net:
     driver: bridge
-
-volumes:
-  jenkins-data:

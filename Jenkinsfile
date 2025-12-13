@@ -1,15 +1,12 @@
 pipeline {
     agent any
-    
+
     tools {
         maven 'Maven'
         jdk 'JDK21'
     }
-    
-    environment {
-        DOCKER_BUILDKIT = '1'
-    }
-    
+
+
     stages {
         stage('Checkout') {
             steps {
@@ -17,7 +14,7 @@ pipeline {
                 checkout scm
             }
         }
-        
+
         stage('Build Dependencies') {
             steps {
                 echo 'Сборка зависимостей (events-contract, matchmaking-api)...'
@@ -29,80 +26,37 @@ pipeline {
                 }
             }
         }
-        
+
         stage('Build Services') {
             parallel {
                 stage('Build Audit Service') {
                     steps {
-                        echo 'Сборка audit-service...'
+                        echo 'Сборка и тестирование audit-service...'
                         dir('audit-service') {
-                            sh 'mvn clean package -DskipTests'
+                            sh 'mvn clean test'
                         }
                     }
                 }
                 stage('Build Statistics Service') {
                     steps {
-                        echo 'Сборка statistics-service...'
+                        echo 'Сборка и тестирование statistics-service...'
                         dir('statistics-service') {
-                            sh 'mvn clean package -DskipTests'
+                            sh 'mvn clean test'
                         }
                     }
                 }
                 stage('Build Matchmaking REST') {
                     steps {
-                        echo 'Сборка matchmaking-rest...'
+                        echo 'Сборка и тестирование matchmaking-rest...'
                         dir('matchmaking-rest') {
-                            sh 'mvn clean package -DskipTests'
-                        }
-                    }
-                }
-            }
-        }
-        
-        stage('Build Docker Images') {
-            steps {
-                echo 'Сборка Docker образов...'
-                script {
-                    def services = [
-                        'audit-service': '8082',
-                        'statistics-service': '8083',
-                        'matchmaking-rest': '8080'
-                    ]
-                    
-                    services.each { serviceName, port ->
-                        echo "Сборка образа для ${serviceName}..."
-                        dir(serviceName) {
-                            sh """
-                                docker build -t ${serviceName}:latest .
-                            """
-                        }
-                    }
-                }
-            }
-        }
-        
-        stage('Tests') {
-            steps {
-                echo 'Запуск тестов...'
-                script {
-                    def serviceDirs = ['events-contract', 'matchmaking-api', 'audit-service', 'statistics-service', 'matchmaking-rest']
-                    serviceDirs.each { dirName ->
-                        dir(dirName) {
-                            try {
-                                sh 'mvn test'
-                            } catch (Exception e) {
-                                echo "Тесты в ${dirName} не прошли: ${e.getMessage()}"
-                                // Продолжаем выполнение даже если тесты не прошли
-                                // Раскомментируйте следующую строку, если хотите остановить pipeline при падении тестов:
-                                // currentBuild.result = 'FAILURE'
-                            }
+                            sh 'mvn clean test'
                         }
                     }
                 }
             }
         }
     }
-    
+
     post {
         success {
             echo 'Pipeline выполнен успешно!'
