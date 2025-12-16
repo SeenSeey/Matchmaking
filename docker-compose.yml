@@ -60,7 +60,9 @@ services:
 
   # Микросервисы
   audit-service:
-    build: ./audit-service
+    build:
+      context: .
+      dockerfile: audit-service/Dockerfile
     ports:
       - "8082:8082"
     environment:
@@ -73,7 +75,9 @@ services:
       - microservices-net
 
   statistics-service:
-    build: ./statistics-service
+    build:
+      context: .
+      dockerfile: statistics-service/Dockerfile
     ports:
       - "8083:8083"
     environment:
@@ -86,7 +90,9 @@ services:
       - microservices-net
 
   matchmaking-rest:
-    build: ./matchmaking-rest
+    build:
+      context: .
+      dockerfile: matchmaking-rest/Dockerfile
     ports:
       - "8080:8080"
     environment:
