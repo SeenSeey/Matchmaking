@@ -33,7 +33,7 @@ public class StatServiceImpl implements StatService {
     }
 
     @Override
-    public PlayerStatLastGameResponse getPlayerStatLastGame(Long playerId) {
+    public PlayerStatLastGameResponse getPlayerStatLastGame(String playerId) {
         StatGame statGame = statRepo.findLastGameStatByPlayerId(playerId)
                 .orElseThrow(() -> new ResourceNotFoundException("Статистика за последнюю игру", playerId));
 
@@ -54,7 +54,7 @@ public class StatServiceImpl implements StatService {
     }
 
     @Override
-    public PlayerStatAllTimeResponse getPlayerStatAllTime(Long playerId) {
+    public PlayerStatAllTimeResponse getPlayerStatAllTime(String playerId) {
         StatAllTime statAllTime = statRepo.findAllTimeStatByPlayerId(playerId)
                 .orElseThrow(() -> new ResourceNotFoundException("Статистика за всё время", playerId));
 

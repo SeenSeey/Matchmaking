@@ -29,7 +29,7 @@ public class PlayerDataFetcher {
     }
 
     @DgsQuery
-    public PlayerResponse playerById(@InputArgument Long playerId) {
+    public PlayerResponse playerById(@InputArgument String playerId) {
         return playerService.getById(playerId);
     }
 }

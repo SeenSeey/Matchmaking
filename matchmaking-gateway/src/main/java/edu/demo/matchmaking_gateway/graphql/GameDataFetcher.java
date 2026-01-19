@@ -20,9 +20,7 @@ public class GameDataFetcher {
     @DgsMutation
     public GameResponse startGame(@InputArgument("input") Map<String, Object> input) {
         Object playerIdObj = input.get("playerId");
-        Long playerId = playerIdObj instanceof Long 
-                ? (Long) playerIdObj 
-                : Long.parseLong(playerIdObj.toString());
+        String playerId = playerIdObj != null ? playerIdObj.toString() : null;
         GameRequest request = new GameRequest(playerId);
         return gameService.startGame(request);
     }
@@ -30,9 +28,7 @@ public class GameDataFetcher {
     @DgsMutation
     public Boolean leaveGame(@InputArgument("input") Map<String, Object> input) {
         Object playerIdObj = input.get("playerId");
-        Long playerId = playerIdObj instanceof Long 
-                ? (Long) playerIdObj 
-                : Long.parseLong(playerIdObj.toString());
+        String playerId = playerIdObj != null ? playerIdObj.toString() : null;
         GameRequest request = new GameRequest(playerId);
         gameService.leaveGame(request);
         return true;

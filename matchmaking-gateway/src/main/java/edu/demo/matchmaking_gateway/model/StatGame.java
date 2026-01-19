@@ -2,7 +2,7 @@ package edu.demo.matchmaking_gateway.model;
 
 public class StatGame {
     private Long id;
-    private Long playerId;
+    private String playerId;
     private Long gameId;
     private boolean isWon;
     private int killsAmount;
@@ -12,7 +12,7 @@ public class StatGame {
     private int dominanceIndicator;
     private int playerRatingAfterGame;
 
-    public StatGame(Long id, Long playerId, Long gameId, boolean isWon, int killsAmount, int deathsAmount, int damageDoneAmount, int damageReceivedAmount, int dominanceIndicator, int playerRatingAfterGame) {
+    public StatGame(Long id, String playerId, Long gameId, boolean isWon, int killsAmount, int deathsAmount, int damageDoneAmount, int damageReceivedAmount, int dominanceIndicator, int playerRatingAfterGame) {
         this.id = id;
         this.playerId = playerId;
         this.gameId = gameId;
@@ -33,11 +33,11 @@ public class StatGame {
         this.id = id;
     }
 
-    public Long getPlayerId() {
+    public String getPlayerId() {
         return playerId;
     }
 
-    public void setPlayerId(Long playerId) {
+    public void setPlayerId(String playerId) {
         this.playerId = playerId;
     }
 

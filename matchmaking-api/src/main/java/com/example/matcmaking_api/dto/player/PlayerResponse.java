@@ -7,19 +7,19 @@ import java.util.Objects;
 
 @Relation(collectionRelation = "players", itemRelation = "player")
 public class PlayerResponse extends RepresentationModel<PlayerResponse> {
-    private final Long playerId;
+    private final String playerId;
     private final String nickname;
     private final int rating;
     private final String region;
 
-    public PlayerResponse(Long playerId, String nickname, int rating, String region) {
+    public PlayerResponse(String playerId, String nickname, int rating, String region) {
         this.playerId = playerId;
         this.nickname = nickname;
         this.rating = rating;
         this.region = region;
     }
 
-    public Long getPlayerId() {
+    public String getPlayerId() {
         return playerId;
     }
 

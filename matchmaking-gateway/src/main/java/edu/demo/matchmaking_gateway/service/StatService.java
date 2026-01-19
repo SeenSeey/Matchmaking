@@ -6,9 +6,9 @@ import org.springframework.data.domain.Page;
 
 public interface StatService {
 
-    PlayerStatLastGameResponse getPlayerStatLastGame(Long playerId);
+    PlayerStatLastGameResponse getPlayerStatLastGame(String playerId);
 
-    PlayerStatAllTimeResponse getPlayerStatAllTime(Long playerId);
+    PlayerStatAllTimeResponse getPlayerStatAllTime(String playerId);
 
     Page<PlayerStatAllTimeResponse> getTopPlayersPages(int page, int size);
 

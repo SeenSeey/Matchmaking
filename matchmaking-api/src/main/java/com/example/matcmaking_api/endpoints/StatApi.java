@@ -25,14 +25,14 @@ public interface StatApi {
     @ApiResponse(responseCode = "404", description = "Статистика не найдена", content = @Content(schema = @Schema(implementation = StatusResponse.class)))
     @GetMapping("/lastGame")
     EntityModel<PlayerStatLastGameResponse> getPlayerStatLastGame(
-            @Parameter(description = "ID игрока") @RequestParam @NotNull Long playerId);
+            @Parameter(description = "ID игрока") @RequestParam @NotNull String playerId);
 
     @Operation(summary = "Получить статистику игрока за всё время")
     @ApiResponse(responseCode = "200", description = "Статистика получена")
     @ApiResponse(responseCode = "404", description = "Статистика не найдена", content = @Content(schema = @Schema(implementation = StatusResponse.class)))
     @GetMapping("/allTime")
     EntityModel<PlayerStatAllTimeResponse> getPlayerStatAllTime(
-            @Parameter(description = "ID игрока") @RequestParam @NotNull Long playerId);
+            @Parameter(description = "ID игрока") @RequestParam @NotNull String playerId);
 
     @Operation(summary = "Получить статистику лучших игроков")
     @ApiResponse(responseCode = "200", description = "Список лучших игроков")

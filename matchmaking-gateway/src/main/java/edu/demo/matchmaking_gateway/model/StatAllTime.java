@@ -2,11 +2,11 @@ package edu.demo.matchmaking_gateway.model;
 
 public class StatAllTime {
     private Long id;
-    private Long playerId;
+    private String playerId;
     private int winsAmount;
     private int defeatsAmount;
 
-    public StatAllTime(Long id, Long playerId, int winsAmount, int defeatsAmount) {
+    public StatAllTime(Long id, String playerId, int winsAmount, int defeatsAmount) {
         this.id = id;
         this.playerId = playerId;
         this.winsAmount = winsAmount;
@@ -21,11 +21,11 @@ public class StatAllTime {
         this.id = id;
     }
 
-    public Long getPlayerId() {
+    public String getPlayerId() {
         return playerId;
     }
 
-    public void setPlayerId(Long playerId) {
+    public void setPlayerId(String playerId) {
         this.playerId = playerId;
     }
 

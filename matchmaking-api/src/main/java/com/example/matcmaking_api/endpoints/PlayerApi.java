@@ -29,6 +29,6 @@ public interface PlayerApi {
     @ApiResponse(responseCode = "200", description = "Игрок найден")
     @ApiResponse(responseCode = "404", description = "Игрок не найден", content = @Content(schema = @Schema(implementation = StatusResponse.class)))
     @GetMapping("/{playerId}")
-    EntityModel<PlayerResponse> getPlayerById(@PathVariable Long playerId);
+    EntityModel<PlayerResponse> getPlayerById(@PathVariable String playerId);
 
 }

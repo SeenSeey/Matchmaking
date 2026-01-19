@@ -1,0 +1,33 @@
+syntax = "proto3";
+
+package edu.demo.user_service;
+
+option java_multiple_files = true;
+option java_package = "edu.demo.user_service.proto";
+option java_outer_classname = "PlayerProto";
+
+// Player service definition
+service PlayerService {
+  rpc CreatePlayer (CreatePlayerRequest) returns (PlayerResponse);
+  rpc GetPlayerById (GetPlayerByIdRequest) returns (PlayerResponse);
+}
+
+// Request to create a player
+message CreatePlayerRequest {
+  string nickname = 1;
+  string region = 2;
+  int32 rating = 3;
+}
+
+// Request to get player by id
+message GetPlayerByIdRequest {
+  string player_id = 1;
+}
+
+// Player response
+message PlayerResponse {
+  string player_id = 1;
+  string nickname = 2;
+  int32 rating = 3;
+  string region = 4;
+}

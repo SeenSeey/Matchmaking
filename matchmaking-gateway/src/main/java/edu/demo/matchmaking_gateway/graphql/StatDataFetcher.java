@@ -20,12 +20,12 @@ public class StatDataFetcher {
     }
 
     @DgsQuery
-    public PlayerStatLastGameResponse playerStatLastGame(@InputArgument Long playerId) {
+    public PlayerStatLastGameResponse playerStatLastGame(@InputArgument String playerId) {
         return statService.getPlayerStatLastGame(playerId);
     }
 
     @DgsQuery
-    public PlayerStatAllTimeResponse playerStatAllTime(@InputArgument Long playerId) {
+    public PlayerStatAllTimeResponse playerStatAllTime(@InputArgument String playerId) {
         return statService.getPlayerStatAllTime(playerId);
     }
 

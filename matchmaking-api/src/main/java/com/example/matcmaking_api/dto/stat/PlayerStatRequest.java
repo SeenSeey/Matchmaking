@@ -4,6 +4,6 @@ import jakarta.validation.constraints.NotNull;
 
 public record PlayerStatRequest(
         @NotNull(message = "ID игрока не может быть пустым")
-        Long playerId
+        String playerId
 ) {
 }

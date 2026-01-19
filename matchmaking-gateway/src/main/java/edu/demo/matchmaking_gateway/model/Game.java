@@ -4,12 +4,12 @@ import java.sql.Timestamp;
 
 public class Game {
     private Long id;
-    private Long firstPlayerId;
-    private Long secondPlayerId;
+    private String firstPlayerId;
+    private String secondPlayerId;
     private String roomMap;
     private Timestamp gameStartedTime;
 
-    public Game(Long id, Long firstPlayerId, Long secondPlayerId, String roomMap, Timestamp gameStartedTime) {
+    public Game(Long id, String firstPlayerId, String secondPlayerId, String roomMap, Timestamp gameStartedTime) {
         this.id = id;
         this.firstPlayerId = firstPlayerId;
         this.secondPlayerId = secondPlayerId;
@@ -25,19 +25,19 @@ public class Game {
         this.id = id;
     }
 
-    public Long getFirstPlayerId() {
+    public String getFirstPlayerId() {
         return firstPlayerId;
     }
 
-    public void setFirstPlayerId(Long firstPlayerId) {
+    public void setFirstPlayerId(String firstPlayerId) {
         this.firstPlayerId = firstPlayerId;
     }
 
-    public Long getSecondPlayerId() {
+    public String getSecondPlayerId() {
         return secondPlayerId;
     }
 
-    public void setSecondPlayerId(Long secondPlayerId) {
+    public void setSecondPlayerId(String secondPlayerId) {
         this.secondPlayerId = secondPlayerId;
     }
 

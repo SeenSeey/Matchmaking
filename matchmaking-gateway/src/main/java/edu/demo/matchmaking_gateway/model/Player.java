@@ -1,23 +1,23 @@
 package edu.demo.matchmaking_gateway.model;
 
 public class Player {
-    private Long id;
+    private String id;
     private String nickname;
     private String region;
     private int rating;
 
-    public Player(Long id, String nickname, String region, int rating) {
+    public Player(String id, String nickname, String region, int rating) {
         this.id = id;
         this.nickname = nickname;
         this.region = region;
         this.rating = rating;
     }
 
-    public Long getId() {
+    public String getId() {
         return id;
     }
 
-    public void setId(Long id) {
+    public void setId(String id) {
         this.id = id;
     }
 

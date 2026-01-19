@@ -17,12 +17,12 @@ public class RootController {
         RepresentationModel<?> rootModel = new RepresentationModel<>();
 
         rootModel.add(
-                linkTo(methodOn(PlayerController.class).getPlayerById(1L)).withRel("player-by-id"),
+                linkTo(methodOn(PlayerController.class).getPlayerById("example-uuid")).withRel("player-by-id"),
                 linkTo(methodOn(PlayerController.class).registerPlayer(null)).withRel("register-player"),
                 linkTo(methodOn(GameController.class).startGame(null)).withRel("start-game"),
                 linkTo(methodOn(GameController.class).leaveGame(null)).withRel("leave-game"),
-                linkTo(methodOn(StatController.class).getPlayerStatLastGame(1L)).withRel("player-stat-last-game"),
-                linkTo(methodOn(StatController.class).getPlayerStatAllTime(1L)).withRel("player-stat-all-time"),
+                linkTo(methodOn(StatController.class).getPlayerStatLastGame("example-uuid")).withRel("player-stat-last-game"),
+                linkTo(methodOn(StatController.class).getPlayerStatAllTime("example-uuid")).withRel("player-stat-all-time"),
                 linkTo(methodOn(StatController.class).getTopPlayersPages(0, 20)).withRel("top-players"),
                 linkTo(methodOn(RootController.class).getRoot()).slash("swagger-ui.html").withRel("documentation")
         );

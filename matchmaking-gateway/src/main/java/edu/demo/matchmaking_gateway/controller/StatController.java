@@ -22,13 +22,13 @@ public class StatController implements StatApi {
     }
 
     @Override
-    public EntityModel<PlayerStatLastGameResponse> getPlayerStatLastGame(@NotNull Long playerId) {
+    public EntityModel<PlayerStatLastGameResponse> getPlayerStatLastGame(@NotNull String playerId) {
         PlayerStatLastGameResponse stat = statService.getPlayerStatLastGame(playerId);
         return statModelAssembler.toModel(stat);
     }
 
     @Override
-    public EntityModel<PlayerStatAllTimeResponse> getPlayerStatAllTime(@NotNull Long playerId) {
+    public EntityModel<PlayerStatAllTimeResponse> getPlayerStatAllTime(@NotNull String playerId) {
         PlayerStatAllTimeResponse stat = statService.getPlayerStatAllTime(playerId);
         return statModelAssembler.toModel(stat);
     }

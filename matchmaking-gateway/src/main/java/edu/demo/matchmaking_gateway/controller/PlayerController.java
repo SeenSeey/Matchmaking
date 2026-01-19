@@ -30,7 +30,7 @@ public class PlayerController implements PlayerApi {
     }
 
     @Override
-    public EntityModel<PlayerResponse> getPlayerById(Long playerId) {
+    public EntityModel<PlayerResponse> getPlayerById(String playerId) {
         PlayerResponse player = playerService.getById(playerId);
         return playerModelAssembler.toModel(player);
     }

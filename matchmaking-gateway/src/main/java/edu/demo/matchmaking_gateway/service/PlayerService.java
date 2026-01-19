@@ -7,6 +7,6 @@ public interface PlayerService {
 
     PlayerResponse create(PlayerRequest request);
 
-    PlayerResponse getById(Long id);
+    PlayerResponse getById(String id);
 
 }

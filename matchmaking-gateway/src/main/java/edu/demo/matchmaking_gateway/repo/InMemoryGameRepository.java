@@ -24,7 +24,7 @@ public class InMemoryGameRepository {
         return Optional.ofNullable(storage.get(id));
     }
 
-    public Optional<Game> findByPlayerId(Long playerId) {
+    public Optional<Game> findByPlayerId(String playerId) {
         return storage.values().stream()
                 .filter(game -> game.getFirstPlayerId().equals(playerId) || game.getSecondPlayerId().equals(playerId))
                 .findFirst();

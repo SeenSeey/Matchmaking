@@ -26,7 +26,7 @@ public class InMemoryStatRepository {
         return statGame;
     }
 
-    public Optional<StatGame> findLastGameStatByPlayerId(Long playerId) {
+    public Optional<StatGame> findLastGameStatByPlayerId(String playerId) {
         return gameStatsStorage.values().stream()
                 .filter(stat -> stat.getPlayerId().equals(playerId))
                 .max(Comparator.comparing(StatGame::getId));
@@ -39,7 +39,7 @@ public class InMemoryStatRepository {
         return statAllTime;
     }
 
-    public Optional<StatAllTime> findAllTimeStatByPlayerId(Long playerId) {
+    public Optional<StatAllTime> findAllTimeStatByPlayerId(String playerId) {
         return allTimeStatsStorage.values().stream()
                 .filter(stat -> stat.getPlayerId().equals(playerId))
                 .findFirst();

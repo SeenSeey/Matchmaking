@@ -81,7 +81,7 @@ public class GameServiceImpl implements GameService {
         );
     }
 
-    private Player findOpponent(Long currentPlayerId, String region, int rating) {
+    private Player findOpponent(String currentPlayerId, String region, int rating) {
         return playerRepo.findAll().stream()
                 .filter(player -> !player.getId().equals(currentPlayerId))
                 .filter(player -> player.getRegion().equals(region))
