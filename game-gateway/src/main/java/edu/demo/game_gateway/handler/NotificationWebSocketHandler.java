@@ -2,6 +2,7 @@ package edu.demo.game_gateway.handler;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import edu.demo.game_gateway.dto.PlayerInfo;
+import edu.demo.game_gateway.service.EventPublisherService;
 import edu.demo.game_gateway.service.TicketValidationService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -28,6 +29,7 @@ public class NotificationWebSocketHandler extends TextWebSocketHandler {
     private final StringRedisTemplate redisTemplate;
     private final RedisMessageListenerContainer redisMessageListenerContainer;
     private final ObjectMapper objectMapper;
+    private final EventPublisherService eventPublisherService;
 
     private final Map<String, WebSocketSession> activeSessions = new ConcurrentHashMap<>();
     private final Map<String, String> sessionToPlayerId = new ConcurrentHashMap<>();
@@ -35,11 +37,13 @@ public class NotificationWebSocketHandler extends TextWebSocketHandler {
     public NotificationWebSocketHandler(TicketValidationService ticketValidationService,
                                       StringRedisTemplate redisTemplate,
                                       RedisMessageListenerContainer redisMessageListenerContainer,
-                                      ObjectMapper objectMapper) {
+                                      ObjectMapper objectMapper,
+                                      EventPublisherService eventPublisherService) {
         this.ticketValidationService = ticketValidationService;
         this.redisTemplate = redisTemplate;
         this.redisMessageListenerContainer = redisMessageListenerContainer;
         this.objectMapper = objectMapper;
+        this.eventPublisherService = eventPublisherService;
     }
 
     @Override
@@ -88,6 +92,18 @@ public class NotificationWebSocketHandler extends TextWebSocketHandler {
         sendMessage(session, connectionMessage);
         logger.info("Соединение подтверждено: sessionId={}, playerId={}, ticketId={}", 
                 session.getId(), playerInfo.getPlayerId(), ticketId);
+
+        eventPublisherService.publishPlayerSearchingOpponentEvent(
+                playerInfo.getPlayerId(),
+                playerInfo.getNickname(),
+                playerInfo.getRating(),
+                playerInfo.getRegion()
+        );
+
+        String searchingMessage = "Поиск соперника";
+        sendMessage(session, searchingMessage);
+        logger.info("Сообщение 'Поиск соперника' отправлено пользователю: sessionId={}, playerId={}",
+                session.getId(), playerInfo.getPlayerId());
     }
 
     @Override
