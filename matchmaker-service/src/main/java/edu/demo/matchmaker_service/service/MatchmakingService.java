@@ -41,11 +41,7 @@ public class MatchmakingService {
         }
     }
 
-    public void cachePlayerInfo(String playerId, String nickname, int rating, String region) {
-        playerInfoCache.put(playerId, new PlayerInfo(playerId, nickname, rating, region));
-    }
-
-    public PlayerInfo[] findAndRemovePair(String playerId, int rating, String region) {
+    public String[] findAndRemovePair(String playerId, int rating, String region) {
         String poolKey = POOL_KEY_PREFIX + region + ":" + MODE;
 
         @SuppressWarnings("unchecked")
@@ -56,30 +52,11 @@ public class MatchmakingService {
                 String.valueOf(rating),
                 String.valueOf(RATING_DELTA)
         );
-        
+
         if (result != null && result.size() == 2) {
-            String player1Id = result.get(0);
-            String player2Id = result.get(1);
-
-            PlayerInfo player1 = playerInfoCache.get(player1Id);
-            PlayerInfo player2 = playerInfoCache.get(player2Id);
-
-            playerInfoCache.remove(player1Id);
-            playerInfoCache.remove(player2Id);
-            
-            if (player1 != null && player2 != null) {
-                return new PlayerInfo[]{player1, player2};
-            } else {
-                if (player1 == null) {
-                    player1 = new PlayerInfo(player1Id, "Unknown", rating, region);
-                }
-                if (player2 == null) {
-                    player2 = new PlayerInfo(player2Id, "Unknown", rating, region);
-                }
-                return new PlayerInfo[]{player1, player2};
-            }
+            return new String[]{result.get(0), result.get(1)};
         }
-        
+
         return null;
     }
 }

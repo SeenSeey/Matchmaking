@@ -64,34 +64,22 @@ public class PlayerSearchingOpponentListener {
                 event.playerId(), event.nickname(), event.rating(), event.region());
 
         try {
-            // Сохраняем информацию об игроке в кэш перед добавлением в пул
-            matchmakingService.cachePlayerInfo(
-                    event.playerId(),
-                    event.nickname(),
-                    event.rating(),
-                    event.region()
-            );
-
-            edu.demo.matchmaker_service.dto.PlayerInfo[] pair = matchmakingService.findAndRemovePair(
+            String[] pair = matchmakingService.findAndRemovePair(
                     event.playerId(), 
                     event.rating(), 
                     event.region()
             );
 
             if (pair != null && pair.length == 2) {
-                edu.demo.matchmaker_service.dto.PlayerInfo player1 = pair[0];
-                edu.demo.matchmaker_service.dto.PlayerInfo player2 = pair[1];
+                String player1Id = pair[0];
+                String player2Id = pair[1];
                 
                 logger.info("Пара найдена: player1Id={}, player2Id={}, region={}", 
-                        player1.getPlayerId(), player2.getPlayerId(), event.region());
+                        player1Id, player2Id, event.region());
 
                 matchEventPublisherService.publishMatchFoundEvent(
-                        player1.getPlayerId(),
-                        player1.getNickname(),
-                        player1.getRating(),
-                        player2.getPlayerId(),
-                        player2.getNickname(),
-                        player2.getRating(),
+                        player1Id,
+                        player2Id,
                         event.region()
                 );
             } else {

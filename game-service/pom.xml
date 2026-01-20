@@ -5,14 +5,14 @@
 	<parent>
 		<groupId>org.springframework.boot</groupId>
 		<artifactId>spring-boot-starter-parent</artifactId>
-		<version>3.5.9</version>
+		<version>3.5.7</version>
 		<relativePath/>
 	</parent>
 
 	<groupId>edu.demo</groupId>
-	<artifactId>game-gateway</artifactId>
+	<artifactId>game-service</artifactId>
 	<version>0.0.1-SNAPSHOT</version>
-	<name>game-gateway</name>
+	<name>game-service</name>
 	<description>Demo project for University</description>
 	<url/>
 
@@ -22,17 +22,12 @@
 	<dependencies>
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
-			<artifactId>spring-boot-starter-web</artifactId>
+			<artifactId>spring-boot-starter</artifactId>
 		</dependency>
 
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
-			<artifactId>spring-boot-starter-websocket</artifactId>
-		</dependency>
-
-		<dependency>
-			<groupId>org.springframework.boot</groupId>
-			<artifactId>spring-boot-starter-data-redis</artifactId>
+			<artifactId>spring-boot-starter-amqp</artifactId>
 		</dependency>
 
 		<dependency>
@@ -42,22 +37,17 @@
 
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
-			<artifactId>spring-boot-starter-amqp</artifactId>
-		</dependency>
-
-		<dependency>
-			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-starter-test</artifactId>
 			<scope>test</scope>
 		</dependency>
 
-        <dependency>
-            <groupId>com.example</groupId>
-            <artifactId>events-contract</artifactId>
-            <version>1.1</version>
-            <scope>system</scope>
-            <systemPath>${project.basedir}/lib/events-contract.jar</systemPath>
-        </dependency>
+		<dependency>
+			<groupId>com.example</groupId>
+			<artifactId>events-contract</artifactId>
+			<version>1.2</version>
+			<scope>system</scope>
+			<systemPath>${project.basedir}/lib/events-contract.jar</systemPath>
+		</dependency>
 	</dependencies>
 
 	<build>

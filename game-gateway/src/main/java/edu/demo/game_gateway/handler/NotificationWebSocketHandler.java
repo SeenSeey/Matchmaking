@@ -78,6 +78,14 @@ public class NotificationWebSocketHandler extends TextWebSocketHandler {
                     logger.info("Получено сообщение из Redis Pub/Sub: topic={}, message={}, sessionId={}", 
                             topic, messageText, session.getId());
                     sendMessage(session, messageText);
+                    
+                    // Если получено сообщение о найденной паре, подписываемся на game_updates_{match_id}
+                    if (messageText.contains("Match ID:")) {
+                        String matchId = extractMatchId(messageText);
+                        if (matchId != null) {
+                            subscribeToGameUpdates(session, matchId);
+                        }
+                    }
                 } catch (Exception e) {
                     logger.error("Ошибка при обработке сообщения из Redis Pub/Sub: topic={}", topic, e);
                 }
@@ -144,5 +152,37 @@ public class NotificationWebSocketHandler extends TextWebSocketHandler {
         } catch (IOException e) {
             logger.error("Ошибка при отправке сообщения: sessionId={}", session.getId(), e);
         }
+    }
+
+    private String extractMatchId(String message) {
+        // Извлекаем match_id из сообщения вида "Пара найдена! Match ID: {match_id}"
+        if (message.contains("Match ID:")) {
+            String[] parts = message.split("Match ID:");
+            if (parts.length > 1) {
+                return parts[1].trim();
+            }
+        }
+        return null;
+    }
+
+    private void subscribeToGameUpdates(WebSocketSession session, String matchId) {
+        String gameUpdatesTopic = "game_updates_" + matchId;
+        MessageListener gameUpdatesListener = new MessageListener() {
+            @Override
+            public void onMessage(Message message, byte[] pattern) {
+                try {
+                    String messageText = new String(message.getBody());
+                    logger.info("Получено сообщение из game_updates: topic={}, message={}, sessionId={}", 
+                            gameUpdatesTopic, messageText, session.getId());
+                    sendMessage(session, messageText);
+                } catch (Exception e) {
+                    logger.error("Ошибка при обработке сообщения из game_updates: topic={}", gameUpdatesTopic, e);
+                }
+            }
+        };
+        
+        redisMessageListenerContainer.addMessageListener(gameUpdatesListener, new ChannelTopic(gameUpdatesTopic));
+        logger.info("Подписка на game_updates создана: topic={}, sessionId={}, matchId={}", 
+                gameUpdatesTopic, session.getId(), matchId);
     }
 }
