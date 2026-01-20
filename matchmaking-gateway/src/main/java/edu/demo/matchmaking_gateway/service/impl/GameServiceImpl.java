@@ -2,6 +2,7 @@ package edu.demo.matchmaking_gateway.service.impl;
 
 import com.example.matcmaking_api.dto.game.GameRequest;
 import com.example.matcmaking_api.dto.game.GameResponse;
+import com.example.matcmaking_api.dto.game.StartGameResponse;
 import com.example.matcmaking_api.dto.player.PlayerResponse;
 import com.example.matcmaking_api.exception.ResourceNotFoundException;
 import edu.demo.matchmaking_gateway.model.Game;
@@ -10,18 +11,18 @@ import edu.demo.matchmaking_gateway.repo.InMemoryGameRepository;
 import edu.demo.matchmaking_gateway.repo.InMemoryPlayerRepository;
 import edu.demo.matchmaking_gateway.service.GameService;
 import edu.demo.matchmaking_gateway.service.PlayerService;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
-import java.sql.Timestamp;
-import java.util.Random;
+import java.util.UUID;
 
 @Service
 public class GameServiceImpl implements GameService {
+    private static final Logger logger = LoggerFactory.getLogger(GameServiceImpl.class);
     private final InMemoryGameRepository gameRepo;
     private final InMemoryPlayerRepository playerRepo;
     private final PlayerService playerService;
-    private static final String[] ROOM_MAPS = {"Map1", "Map2", "Map3", "Map4", "Map5"};
-    private final Random random = new Random();
 
     public GameServiceImpl(InMemoryGameRepository gameRepo, InMemoryPlayerRepository playerRepo, PlayerService playerService) {
         this.gameRepo = gameRepo;
@@ -30,32 +31,16 @@ public class GameServiceImpl implements GameService {
     }
 
     @Override
-    public GameResponse startGame(GameRequest request) {
-        Player firstPlayer = playerRepo.findById(request.playerId())
-                .orElseThrow(() -> new ResourceNotFoundException("Игрок", request.playerId()));
+    public StartGameResponse startGame(GameRequest request) {
+        PlayerResponse playerInfo = playerService.getInfoForStartGame(request.playerId());
 
-        gameRepo.findByPlayerId(request.playerId())
-                .ifPresent(game -> {
-                    throw new RuntimeException("player already in game: " + request.playerId());
-                });
-
-        Player secondPlayer = findOpponent(request.playerId(), firstPlayer.getRegion(), firstPlayer.getRating());
-
-        String roomMap = ROOM_MAPS[random.nextInt(ROOM_MAPS.length)];
-        Timestamp gameStartedTime = new Timestamp(System.currentTimeMillis());
-        Game game = new Game(null, firstPlayer.getId(), secondPlayer.getId(), roomMap, gameStartedTime);
-        game = gameRepo.save(game);
-
-        PlayerResponse firstPlayerResponse = playerService.getById(firstPlayer.getId());
-        PlayerResponse secondPlayerResponse = playerService.getById(secondPlayer.getId());
-
-        return new GameResponse(
-                game.getId(),
-                firstPlayerResponse,
-                secondPlayerResponse,
-                game.getRoomMap(),
-                game.getGameStartedTime()
-        );
+        String gameKey = UUID.randomUUID().toString();
+        
+        logger.info("Игра начата: playerId={}, gameKey={}, nickname={}, region={}, rating={}", 
+                playerInfo.getPlayerId(), gameKey, playerInfo.getNickname(), 
+                playerInfo.getRegion(), playerInfo.getRating());
+        
+        return new StartGameResponse(gameKey);
     }
 
     @Override

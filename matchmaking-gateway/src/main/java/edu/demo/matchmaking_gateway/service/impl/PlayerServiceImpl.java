@@ -2,8 +2,11 @@ package edu.demo.matchmaking_gateway.service.impl;
 
 import com.example.matcmaking_api.dto.player.PlayerRequest;
 import com.example.matcmaking_api.dto.player.PlayerResponse;
+import com.example.matcmaking_api.exception.PlayerAlreadyInGameException;
+import com.example.matcmaking_api.exception.ResourceNotFoundException;
 import edu.demo.matchmaking_gateway.proto.CreatePlayerRequest;
 import edu.demo.matchmaking_gateway.proto.GetPlayerByIdRequest;
+import edu.demo.matchmaking_gateway.proto.GetInfoForStartGameRequest;
 import edu.demo.matchmaking_gateway.proto.PlayerServiceGrpc;
 import edu.demo.matchmaking_gateway.service.PlayerService;
 import io.grpc.StatusRuntimeException;
@@ -73,6 +76,38 @@ public class PlayerServiceImpl implements PlayerService {
                 throw new RuntimeException("Player not found: " + id, e);
             }
             throw new RuntimeException("Failed to get player via gRPC: " + e.getMessage(), e);
+        }
+    }
+
+    @Override
+    public PlayerResponse getInfoForStartGame(String id) {
+        try {
+            GetInfoForStartGameRequest grpcRequest = GetInfoForStartGameRequest.newBuilder()
+                    .setPlayerId(id)
+                    .build();
+
+            edu.demo.matchmaking_gateway.proto.GetInfoForStartGameResponse grpcResponse = 
+                    playerServiceStub.getInfoForStartGame(grpcRequest);
+
+            PlayerResponse response = new PlayerResponse(
+                    grpcResponse.getPlayerId(),
+                    grpcResponse.getNickname(),
+                    grpcResponse.getRating(),
+                    grpcResponse.getRegion()
+            );
+            
+            logger.info("Информация для старта игры получена: id={}, nickname={}, region={}, rating={}", 
+                    response.getPlayerId(), response.getNickname(), response.getRegion(), response.getRating());
+            
+            return response;
+        } catch (StatusRuntimeException e) {
+            if (e.getStatus().getCode() == io.grpc.Status.Code.NOT_FOUND) {
+                throw new ResourceNotFoundException("Игрок", id);
+            } else if (e.getStatus().getCode() == io.grpc.Status.Code.ALREADY_EXISTS) {
+                logger.warn("Попытка начать игру для игрока, который уже в игре: id={}", id);
+                throw new PlayerAlreadyInGameException(id);
+            }
+            throw new RuntimeException("Failed to get info for start game via gRPC: " + e.getMessage(), e);
         }
     }
 }

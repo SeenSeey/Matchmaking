@@ -2,7 +2,7 @@ package com.example.matcmaking_api.endpoints;
 
 import com.example.matcmaking_api.dto.StatusResponse;
 import com.example.matcmaking_api.dto.game.GameRequest;
-import com.example.matcmaking_api.dto.game.GameResponse;
+import com.example.matcmaking_api.dto.game.StartGameResponse;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
@@ -25,7 +25,7 @@ public interface GameApi {
     @ApiResponse(responseCode = "404", description = "Игрок не найден", content = @Content(schema = @Schema(implementation = StatusResponse.class)))
     @ApiResponse(responseCode = "409", description = "Игрок уже в поиске или в игре", content = @Content(schema = @Schema(implementation = StatusResponse.class)))
     @PostMapping("/start")
-    ResponseEntity<EntityModel<GameResponse>> startGame(@Valid @RequestBody GameRequest request);
+    ResponseEntity<EntityModel<StartGameResponse>> startGame(@Valid @RequestBody GameRequest request);
 
     @Operation(summary = "Досрочно покинуть игру")
     @ApiResponse(responseCode = "204", description = "Игра покинута")

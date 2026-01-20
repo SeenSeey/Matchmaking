@@ -9,4 +9,6 @@ public interface PlayerService {
 
     PlayerResponse getById(String id);
 
+    PlayerResponse getInfoForStartGame(String id);
+
 }

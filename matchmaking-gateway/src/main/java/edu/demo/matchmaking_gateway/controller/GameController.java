@@ -1,9 +1,9 @@
 package edu.demo.matchmaking_gateway.controller;
 
 import com.example.matcmaking_api.dto.game.GameRequest;
-import com.example.matcmaking_api.dto.game.GameResponse;
+import com.example.matcmaking_api.dto.game.StartGameResponse;
 import com.example.matcmaking_api.endpoints.GameApi;
-import edu.demo.matchmaking_gateway.assembler.GameModelAssembler;
+import edu.demo.matchmaking_gateway.assembler.StartGameModelAssembler;
 import edu.demo.matchmaking_gateway.service.GameService;
 import jakarta.validation.Valid;
 import org.springframework.hateoas.EntityModel;
@@ -13,17 +13,17 @@ import org.springframework.web.bind.annotation.RestController;
 @RestController
 public class GameController implements GameApi {
     private final GameService gameService;
-    private final GameModelAssembler gameModelAssembler;
+    private final StartGameModelAssembler startGameModelAssembler;
 
-    public GameController(GameService gameService, GameModelAssembler gameModelAssembler) {
+    public GameController(GameService gameService, StartGameModelAssembler startGameModelAssembler) {
         this.gameService = gameService;
-        this.gameModelAssembler = gameModelAssembler;
+        this.startGameModelAssembler = startGameModelAssembler;
     }
 
     @Override
-    public ResponseEntity<EntityModel<GameResponse>> startGame(@Valid GameRequest request) {
-        GameResponse created = gameService.startGame(request);
-        EntityModel<GameResponse> entityModel = gameModelAssembler.toModel(created);
+    public ResponseEntity<EntityModel<StartGameResponse>> startGame(@Valid GameRequest request) {
+        StartGameResponse created = gameService.startGame(request);
+        EntityModel<StartGameResponse> entityModel = startGameModelAssembler.toModel(created);
 
         return ResponseEntity
                 .ok()

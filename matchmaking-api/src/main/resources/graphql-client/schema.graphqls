@@ -13,6 +13,10 @@ type Game {
     gameStartedTime: String!
 }
 
+type StartGame {
+    gameKey: ID!
+}
+
 type PlayerStatLastGame {
     player: Player!
     game: Game!
@@ -70,7 +74,7 @@ input LeaveGameInput {
 type Mutation {
     registerPlayer(input: PlayerInput!): Player
     
-    startGame(input: StartGameInput!): Game
+    startGame(input: StartGameInput!): StartGame
     
     leaveGame(input: LeaveGameInput!): Boolean
 }

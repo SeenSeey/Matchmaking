@@ -10,6 +10,7 @@ option java_outer_classname = "PlayerProto";
 service PlayerService {
   rpc CreatePlayer (CreatePlayerRequest) returns (PlayerResponse);
   rpc GetPlayerById (GetPlayerByIdRequest) returns (PlayerResponse);
+  rpc GetInfoForStartGame (GetInfoForStartGameRequest) returns (GetInfoForStartGameResponse);
 }
 
 // Request to create a player
@@ -26,6 +27,19 @@ message GetPlayerByIdRequest {
 
 // Player response
 message PlayerResponse {
+  string player_id = 1;
+  string nickname = 2;
+  int32 rating = 3;
+  string region = 4;
+}
+
+// Request to get info for start game
+message GetInfoForStartGameRequest {
+  string player_id = 1;
+}
+
+// Response with player info for start game
+message GetInfoForStartGameResponse {
   string player_id = 1;
   string nickname = 2;
   int32 rating = 3;

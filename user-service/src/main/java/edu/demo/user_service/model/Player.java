@@ -10,8 +10,10 @@ public class Player {
     private String nickname;
     private String region;
     private int rating;
+    private PlayerStatus status;
 
     public Player() {
+        this.status = PlayerStatus.AVAILABLE;
     }
 
     public Player(String id, String nickname, String region, int rating) {
@@ -19,6 +21,7 @@ public class Player {
         this.nickname = nickname;
         this.region = region;
         this.rating = rating;
+        this.status = PlayerStatus.AVAILABLE;
     }
 
     public String getId() {
@@ -51,5 +54,13 @@ public class Player {
 
     public void setRating(int rating) {
         this.rating = rating;
+    }
+
+    public PlayerStatus getStatus() {
+        return status;
+    }
+
+    public void setStatus(PlayerStatus status) {
+        this.status = status;
     }
 }

@@ -68,4 +68,42 @@ public class PlayerGrpcService extends PlayerServiceGrpc.PlayerServiceImplBase {
                     .asRuntimeException());
         }
     }
+
+    @Override
+    public void getInfoForStartGame(GetInfoForStartGameRequest request,
+                                    StreamObserver<GetInfoForStartGameResponse> responseObserver) {
+        try {
+
+            Player player = playerService.getInfoForStartGame(request.getPlayerId());
+
+            GetInfoForStartGameResponse response = GetInfoForStartGameResponse.newBuilder()
+                    .setPlayerId(player.getId())
+                    .setNickname(player.getNickname())
+                    .setRating(player.getRating())
+                    .setRegion(player.getRegion())
+                    .build();
+
+            responseObserver.onNext(response);
+            responseObserver.onCompleted();
+
+        } catch (RuntimeException e) {
+            if (e.getMessage().contains("not found")) {
+                responseObserver.onError(io.grpc.Status.NOT_FOUND
+                        .withDescription(e.getMessage())
+                        .asRuntimeException());
+            } else if (e.getMessage().contains("already in game")) {
+                responseObserver.onError(io.grpc.Status.ALREADY_EXISTS
+                        .withDescription(e.getMessage())
+                        .asRuntimeException());
+            } else {
+                responseObserver.onError(io.grpc.Status.INTERNAL
+                        .withDescription("Failed to get info for start game: " + e.getMessage())
+                        .asRuntimeException());
+            }
+        } catch (Exception e) {
+            responseObserver.onError(io.grpc.Status.INTERNAL
+                    .withDescription("Failed to get info for start game: " + e.getMessage())
+                    .asRuntimeException());
+        }
+    }
 }
