@@ -1,0 +1,37 @@
+services:
+  redis:
+    image: redis:7-alpine
+    container_name: matchmaking-redis
+    ports:
+      - "6379:6379"
+    command: redis-server --appendonly yes
+    volumes:
+      - redis-data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  mongodb:
+    image: mongo:7.0
+    container_name: user-service-mongodb
+    restart: unless-stopped
+    ports:
+      - "27017:27017"
+    environment:
+      MONGO_INITDB_DATABASE: matchmaking
+    volumes:
+      - mongodb_data:/data/db
+    networks:
+      - user-service-network
+
+volumes:
+  redis-data:
+  mongodb_data:
+    driver: local
+
+networks:
+  user-service-network:
+    driver: bridge
+

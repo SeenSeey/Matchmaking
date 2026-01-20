@@ -15,6 +15,7 @@ type Game {
 
 type StartGame {
     gameKey: ID!
+    gameGatewayUrl: String!
 }
 
 type PlayerStatLastGame {
