@@ -9,6 +9,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
+import java.util.UUID;
+
 @Service
 public class TicketServiceImpl implements TicketService {
     private static final Logger logger = LoggerFactory.getLogger(TicketServiceImpl.class);
@@ -23,12 +25,14 @@ public class TicketServiceImpl implements TicketService {
     }
 
     @Override
-    public void saveTicket(String ticketId, PlayerResponse playerInfo) {
+    public String saveTicket(PlayerResponse playerInfo) {
+        String ticketId = UUID.randomUUID().toString();
         try {
             String jsonData = objectMapper.writeValueAsString(playerInfo);
             ticketRepository.save(ticketId, jsonData, TICKET_EXPIRATION_SECONDS);
             logger.info("Билет сохранен: ticketId={}, playerId={}, expiresIn={}s", 
                     ticketId, playerInfo.getPlayerId(), TICKET_EXPIRATION_SECONDS);
+            return ticketId;
         } catch (JsonProcessingException e) {
             logger.error("Ошибка при сериализации данных игрока для билета: ticketId={}", ticketId, e);
             throw new RuntimeException("Failed to save ticket", e);

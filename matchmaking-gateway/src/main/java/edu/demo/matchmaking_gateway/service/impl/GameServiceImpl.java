@@ -17,8 +17,6 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
-import java.util.UUID;
-
 @Service
 public class GameServiceImpl implements GameService {
     private static final Logger logger = LoggerFactory.getLogger(GameServiceImpl.class);
@@ -42,9 +40,7 @@ public class GameServiceImpl implements GameService {
     public StartGameResponse startGame(GameRequest request) {
         PlayerResponse playerInfo = playerService.getInfoForStartGame(request.playerId());
 
-        String gameKey = UUID.randomUUID().toString();
-
-        ticketService.saveTicket(gameKey, playerInfo);
+        String gameKey = ticketService.saveTicket(playerInfo);
         
         logger.info("Игра начата: playerId={}, gameKey={}, nickname={}, region={}, rating={}, gameGatewayUrl={}", 
                 playerInfo.getPlayerId(), gameKey, playerInfo.getNickname(), 
