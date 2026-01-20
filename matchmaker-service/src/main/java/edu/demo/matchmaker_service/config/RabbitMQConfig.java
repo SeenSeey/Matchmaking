@@ -11,10 +11,16 @@ import org.springframework.context.annotation.Configuration;
 public class RabbitMQConfig {
 
     public static final String PLAYER_SEARCHING_QUEUE = "player.searching.opponent";
+    public static final String MATCH_FOUND_QUEUE = "match.found";
 
     @Bean
     public Queue playerSearchingQueue() {
         return new Queue(PLAYER_SEARCHING_QUEUE, true);
+    }
+
+    @Bean
+    public Queue matchFoundQueue() {
+        return new Queue(MATCH_FOUND_QUEUE, true);
     }
 
     @Bean
