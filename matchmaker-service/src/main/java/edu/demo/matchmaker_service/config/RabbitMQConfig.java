@@ -13,8 +13,10 @@ public class RabbitMQConfig {
 
     public static final String PLAYER_SEARCHING_QUEUE = "player.searching.opponent";
     public static final String MATCH_FOUND_QUEUE = "match.found";
+    public static final String PLAYER_LEFT_QUEUE_QUEUE = "player.left.queue";
     public static final String PLAYER_SEARCHING_DLQ = "player.searching.opponent.dlq";
     public static final String MATCH_FOUND_DLQ = "match.found.dlq";
+    public static final String PLAYER_LEFT_QUEUE_DLQ = "player.left.queue.dlq";
     public static final String EXCHANGE = "matchmaking.exchange";
 
     @Bean
@@ -49,6 +51,19 @@ public class RabbitMQConfig {
     }
 
     @Bean
+    public Queue playerLeftQueueQueue() {
+        return QueueBuilder.durable(PLAYER_LEFT_QUEUE_QUEUE)
+                .withArgument("x-dead-letter-exchange", "")
+                .withArgument("x-dead-letter-routing-key", PLAYER_LEFT_QUEUE_DLQ)
+                .build();
+    }
+
+    @Bean
+    public Queue playerLeftQueueDlq() {
+        return QueueBuilder.durable(PLAYER_LEFT_QUEUE_DLQ).build();
+    }
+
+    @Bean
     public Binding playerSearchingBinding() {
         return BindingBuilder.bind(playerSearchingQueue())
                 .to(exchange())
@@ -60,6 +75,13 @@ public class RabbitMQConfig {
         return BindingBuilder.bind(matchFoundQueue())
                 .to(exchange())
                 .with(MATCH_FOUND_QUEUE);
+    }
+
+    @Bean
+    public Binding playerLeftQueueBinding() {
+        return BindingBuilder.bind(playerLeftQueueQueue())
+                .to(exchange())
+                .with(PLAYER_LEFT_QUEUE_QUEUE);
     }
 
     @Bean

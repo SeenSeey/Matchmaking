@@ -1,7 +1,9 @@
 package edu.demo.game_gateway.service;
 
 import com.example.events_contract.PlayerDisconnectedEvent;
+import com.example.events_contract.PlayerLeftQueueEvent;
 import com.example.events_contract.PlayerSearchingOpponentEvent;
+import com.example.events_contract.PlayerStatusUpdateEvent;
 import edu.demo.game_gateway.config.RabbitMQConfig;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -41,6 +43,32 @@ public class EventPublisherService {
             logger.error("Ошибка при отправке события PlayerDisconnectedEvent: matchId={}, playerId={}", 
                     matchId, playerId, e);
             throw new RuntimeException("Failed to publish player disconnected event", e);
+        }
+    }
+
+    public void publishPlayerLeftQueueEvent(String playerId, String region) {
+        PlayerLeftQueueEvent event = new PlayerLeftQueueEvent(playerId, region);
+        
+        try {
+            rabbitTemplate.convertAndSend(RabbitMQConfig.EXCHANGE, RabbitMQConfig.PLAYER_LEFT_QUEUE_QUEUE, event);
+            logger.info("Событие PlayerLeftQueueEvent отправлено: playerId={}, region={}", playerId, region);
+        } catch (Exception e) {
+            logger.error("Ошибка при отправке события PlayerLeftQueueEvent: playerId={}, region={}", 
+                    playerId, region, e);
+            throw new RuntimeException("Failed to publish player left queue event", e);
+        }
+    }
+
+    public void publishPlayerStatusUpdateEvent(String playerId, String status) {
+        PlayerStatusUpdateEvent event = new PlayerStatusUpdateEvent(playerId, status);
+        
+        try {
+            rabbitTemplate.convertAndSend(RabbitMQConfig.EXCHANGE, RabbitMQConfig.PLAYER_STATUS_UPDATE_QUEUE, event);
+            logger.info("Событие PlayerStatusUpdateEvent отправлено: playerId={}, status={}", playerId, status);
+        } catch (Exception e) {
+            logger.error("Ошибка при отправке события PlayerStatusUpdateEvent: playerId={}, status={}", 
+                    playerId, status, e);
+            throw new RuntimeException("Failed to publish player status update event", e);
         }
     }
 }

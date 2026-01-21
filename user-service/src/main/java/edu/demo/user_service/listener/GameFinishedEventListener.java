@@ -1,12 +1,14 @@
 package edu.demo.user_service.listener;
 
 import com.example.events_contract.GameFinishedEvent;
+import com.example.events_contract.PlayerStatsUpdatedEvent;
 import edu.demo.user_service.config.RabbitMQConfig;
 import edu.demo.user_service.model.GameStat;
 import edu.demo.user_service.model.Player;
 import edu.demo.user_service.model.PlayerStatus;
 import edu.demo.user_service.repository.GameStatRepository;
 import edu.demo.user_service.repository.PlayerRepository;
+import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.amqp.core.Message;
@@ -25,11 +27,15 @@ public class GameFinishedEventListener {
 
     private final PlayerRepository playerRepository;
     private final GameStatRepository gameStatRepository;
+    private final RabbitTemplate rabbitTemplate;
     private final ConcurrentHashMap<String, Boolean> processedEvents = new ConcurrentHashMap<>();
 
-    public GameFinishedEventListener(PlayerRepository playerRepository, GameStatRepository gameStatRepository) {
+    public GameFinishedEventListener(PlayerRepository playerRepository, 
+                                    GameStatRepository gameStatRepository,
+                                    RabbitTemplate rabbitTemplate) {
         this.playerRepository = playerRepository;
         this.gameStatRepository = gameStatRepository;
+        this.rabbitTemplate = rabbitTemplate;
     }
 
     @RabbitListener(
@@ -117,6 +123,9 @@ public class GameFinishedEventListener {
             playerRepository.save(player1);
             playerRepository.save(player2);
 
+            sendPlayerStatsUpdatedEvent(player1);
+            sendPlayerStatsUpdatedEvent(player2);
+
             channel.basicAck(deliveryTag, false);
             logger.debug("Событие успешно обработано: eventKey={}", eventKey);
         } catch (Exception e) {
@@ -124,6 +133,34 @@ public class GameFinishedEventListener {
                     eventKey, event.matchId(), e);
             processedEvents.remove(eventKey);
             channel.basicNack(deliveryTag, false, false);
+        }
+    }
+
+    private void sendPlayerStatsUpdatedEvent(Player player) {
+        try {
+            long winsCount = gameStatRepository.findAll().stream()
+                    .filter(stat -> stat.getWinnerId().equals(player.getId()))
+                    .count();
+
+            long lossesCount = gameStatRepository.findAll().stream()
+                    .filter(stat -> (stat.getPlayer1Id().equals(player.getId()) || 
+                                   stat.getPlayer2Id().equals(player.getId())) &&
+                                   !stat.getWinnerId().equals(player.getId()))
+                    .count();
+
+            PlayerStatsUpdatedEvent event = new PlayerStatsUpdatedEvent(
+                    player.getId(),
+                    player.getRating(),
+                    (int) winsCount,
+                    (int) lossesCount
+            );
+
+            rabbitTemplate.convertAndSend(RabbitMQConfig.EXCHANGE, 
+                    RabbitMQConfig.PLAYER_STATS_UPDATED_QUEUE, event);
+            logger.info("Событие PlayerStatsUpdatedEvent отправлено: playerId={}, rating={}, wins={}, losses={}", 
+                    player.getId(), player.getRating(), winsCount, lossesCount);
+        } catch (Exception e) {
+            logger.error("Ошибка при отправке PlayerStatsUpdatedEvent: playerId={}", player.getId(), e);
         }
     }
 }

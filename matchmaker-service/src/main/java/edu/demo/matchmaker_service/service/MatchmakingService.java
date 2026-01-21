@@ -1,6 +1,8 @@
 package edu.demo.matchmaker_service.service;
 
 import edu.demo.matchmaker_service.dto.PlayerInfo;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.data.redis.core.script.DefaultRedisScript;
 import org.springframework.stereotype.Service;
@@ -14,6 +16,8 @@ import java.util.concurrent.ConcurrentHashMap;
 
 @Service
 public class MatchmakingService {
+    private static final Logger logger = LoggerFactory.getLogger(MatchmakingService.class);
+
     private static final String POOL_KEY_PREFIX = "matchmaking:pool:";
     private static final String MODE = "ranked";
     private static final int RATING_DELTA = 150;
@@ -58,5 +62,17 @@ public class MatchmakingService {
         }
 
         return null;
+    }
+
+    public void removePlayerFromQueue(String playerId, String region) {
+        String poolKey = POOL_KEY_PREFIX + region + ":" + MODE;
+        Long removed = redisTemplate.opsForZSet().remove(poolKey, playerId);
+        if (removed != null && removed > 0) {
+            logger.info("Игрок удален из очереди ожидания: playerId={}, region={}, poolKey={}", 
+                    playerId, region, poolKey);
+        } else {
+            logger.debug("Игрок не найден в очереди ожидания: playerId={}, region={}, poolKey={}", 
+                    playerId, region, poolKey);
+        }
     }
 }

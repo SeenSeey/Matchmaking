@@ -1,5 +1,6 @@
 package edu.demo.game_gateway.handler;
 
+import com.example.events_contract.PlayerStatsUpdatedEvent;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import edu.demo.game_gateway.dto.GameMessage;
 import edu.demo.game_gateway.dto.PlayerInfo;
@@ -34,9 +35,8 @@ public class NotificationWebSocketHandler extends TextWebSocketHandler {
     private final EventPublisherService eventPublisherService;
     private final MessageFormatterService messageFormatterService;
 
-    private final Map<String, WebSocketSession> activeSessions = new ConcurrentHashMap<>();
-    private final Map<String, String> sessionToPlayerId = new ConcurrentHashMap<>();
-    private final Map<String, String> playerIdToMatchId = new ConcurrentHashMap<>();
+    private final Map<String, PlayerSessionInfo> sessionIdToInfo = new ConcurrentHashMap<>();
+    private final Map<String, PlayerSessionInfo> playerIdToInfo = new ConcurrentHashMap<>();
     private final Map<String, Map<String, MessageListener>> gameUpdatesSubscriptions = new ConcurrentHashMap<>();
 
     public NotificationWebSocketHandler(TicketValidationService ticketValidationService,
@@ -73,8 +73,16 @@ public class NotificationWebSocketHandler extends TextWebSocketHandler {
             return;
         }
 
-        activeSessions.put(ticketId, session);
-        sessionToPlayerId.put(session.getId(), playerInfo.getPlayerId());
+        PlayerSessionInfo sessionInfo = new PlayerSessionInfo(
+                playerInfo.getPlayerId(),
+                ticketId,
+                session,
+                playerInfo.getRegion()
+        );
+
+        String sessionId = session.getId();
+        sessionIdToInfo.put(sessionId, sessionInfo);
+        playerIdToInfo.put(playerInfo.getPlayerId(), sessionInfo);
 
         String topic = "user_notifications_" + playerInfo.getPlayerId();
         MessageListener messageListener = new MessageListener() {
@@ -95,11 +103,11 @@ public class NotificationWebSocketHandler extends TextWebSocketHandler {
                             Map<String, String> dataMap = (Map<String, String>) data;
                             String matchId = dataMap.get("matchId");
                             if (matchId != null) {
-                                String playerId = sessionToPlayerId.get(session.getId());
-                                if (playerId != null) {
-                                    playerIdToMatchId.put(playerId, matchId);
+                                PlayerSessionInfo sessionInfo = sessionIdToInfo.get(session.getId());
+                                if (sessionInfo != null) {
+                                    sessionInfo.setMatchId(matchId);
                                     logger.info("Связь playerId -> matchId установлена: playerId={}, matchId={}", 
-                                            playerId, matchId);
+                                            sessionInfo.getPlayerId(), matchId);
                                 }
                                 subscribeToGameUpdates(session, matchId);
                             }
@@ -142,35 +150,58 @@ public class NotificationWebSocketHandler extends TextWebSocketHandler {
     @Override
     public void afterConnectionClosed(WebSocketSession session, CloseStatus status) throws Exception {
         String sessionId = session.getId();
-        String playerId = sessionToPlayerId.remove(sessionId);
+        PlayerSessionInfo sessionInfo = sessionIdToInfo.remove(sessionId);
 
-        activeSessions.entrySet().removeIf(entry -> entry.getValue().getId().equals(sessionId));
+        if (sessionInfo != null) {
+            String playerId = sessionInfo.getPlayerId();
+            playerIdToInfo.remove(playerId);
+            
+            String matchId = sessionInfo.getMatchId();
+            String region = sessionInfo.getRegion();
 
-        String matchId = null;
-        if (playerId != null) {
-            matchId = playerIdToMatchId.remove(playerId);
-        }
+            gameUpdatesSubscriptions.forEach((matchIdKey, listeners) -> {
+                if (listeners.containsKey(sessionId)) {
+                    unsubscribeFromGameUpdates(sessionId, matchIdKey);
+                }
+            });
 
-        gameUpdatesSubscriptions.forEach((matchIdKey, listeners) -> {
-            if (listeners.containsKey(sessionId)) {
-                unsubscribeFromGameUpdates(sessionId, matchIdKey);
-            }
-        });
-
-        if (playerId != null && matchId != null) {
-            logger.warn("Игрок отключился во время игры: sessionId={}, playerId={}, matchId={}, status={}", 
-                    sessionId, playerId, matchId, status);
-            try {
-                eventPublisherService.publishPlayerDisconnectedEvent(matchId, playerId);
-                logger.info("Событие PlayerDisconnectedEvent отправлено: matchId={}, playerId={}", 
-                        matchId, playerId);
-            } catch (Exception e) {
-                logger.error("Ошибка при отправке события PlayerDisconnectedEvent: matchId={}, playerId={}", 
-                        matchId, playerId, e);
+            String reason = status.getReason();
+            if (reason != null && reason.equals("Game finished")) {
+                logger.info("Соединение закрыто после завершения игры: sessionId={}, playerId={}, matchId={}, status={}", 
+                        sessionId, playerId, matchId, status);
+            } else if (matchId != null) {
+                logger.warn("Игрок отключился во время игры: sessionId={}, playerId={}, matchId={}, status={}", 
+                        sessionId, playerId, matchId, status);
+                try {
+                    eventPublisherService.publishPlayerDisconnectedEvent(matchId, playerId);
+                    logger.info("Событие PlayerDisconnectedEvent отправлено: matchId={}, playerId={}", 
+                            matchId, playerId);
+                } catch (Exception e) {
+                    logger.error("Ошибка при отправке события PlayerDisconnectedEvent: matchId={}, playerId={}", 
+                            matchId, playerId, e);
+                }
+            } else if (region != null) {
+                logger.info("Игрок отключился во время поиска: sessionId={}, playerId={}, region={}, status={}", 
+                        sessionId, playerId, region, status);
+                try {
+                    eventPublisherService.publishPlayerLeftQueueEvent(playerId, region);
+                    logger.info("Событие PlayerLeftQueueEvent отправлено: playerId={}, region={}", 
+                            playerId, region);
+                    
+                    // Отправляем событие для обновления статуса игрока в MongoDB
+                    eventPublisherService.publishPlayerStatusUpdateEvent(playerId, "AVAILABLE");
+                    logger.info("Событие PlayerStatusUpdateEvent отправлено: playerId={}, status=AVAILABLE", 
+                            playerId);
+                } catch (Exception e) {
+                    logger.error("Ошибка при отправке событий при отключении игрока: playerId={}, region={}", 
+                            playerId, region, e);
+                }
+            } else {
+                logger.info("WebSocket соединение закрыто: sessionId={}, playerId={}, status={}", 
+                        sessionId, playerId, status);
             }
         } else {
-            logger.info("WebSocket соединение закрыто: sessionId={}, playerId={}, status={}", 
-                    sessionId, playerId, status);
+            logger.info("WebSocket соединение закрыто: sessionId={}, status={}", sessionId, status);
         }
     }
 
@@ -213,7 +244,8 @@ public class NotificationWebSocketHandler extends TextWebSocketHandler {
 
     private void subscribeToGameUpdates(WebSocketSession session, String matchId) {
         String sessionId = session.getId();
-        String playerId = sessionToPlayerId.get(sessionId);
+        PlayerSessionInfo sessionInfo = sessionIdToInfo.get(sessionId);
+        String playerId = sessionInfo != null ? sessionInfo.getPlayerId() : null;
         String gameUpdatesTopic = "game_updates_" + matchId;
 
         if (gameUpdatesSubscriptions.containsKey(matchId) && 
@@ -271,6 +303,52 @@ public class NotificationWebSocketHandler extends TextWebSocketHandler {
             if (listeners.isEmpty()) {
                 gameUpdatesSubscriptions.remove(matchId);
             }
+        }
+    }
+
+    public void sendStatsAndCloseConnection(PlayerStatsUpdatedEvent event) {
+        String playerId = event.playerId();
+        
+        PlayerSessionInfo sessionInfo = playerIdToInfo.get(playerId);
+        
+        if (sessionInfo == null) {
+            logger.warn("Сессия не найдена для отправки статистики: playerId={}", playerId);
+            return;
+        }
+
+        WebSocketSession session = sessionInfo.getSession();
+        if (!session.isOpen()) {
+            logger.warn("Сессия закрыта для отправки статистики: playerId={}", playerId);
+            return;
+        }
+
+        try {
+            Map<String, Object> statsData = new java.util.HashMap<>();
+            statsData.put("rating", event.rating());
+            statsData.put("winsCount", event.winsCount());
+            statsData.put("lossesCount", event.lossesCount());
+
+            GameMessage statsMessage = new GameMessage(
+                    GameMessage.MessageType.GAME_RESULT,
+                    "Статистика обновлена",
+                    "Ваша статистика обновлена",
+                    statsData
+            );
+
+            sendFormattedMessage(session, statsMessage);
+            logger.info("Статистика отправлена игроку: playerId={}, rating={}, wins={}, losses={}", 
+                    playerId, event.rating(), event.winsCount(), event.lossesCount());
+
+            Thread.sleep(1000);
+
+            if (session.isOpen()) {
+                sessionIdToInfo.remove(session.getId());
+                playerIdToInfo.remove(playerId);
+                session.close(org.springframework.web.socket.CloseStatus.NORMAL.withReason("Game finished"));
+                logger.info("WebSocket соединение закрыто после отправки статистики: playerId={}", playerId);
+            }
+        } catch (Exception e) {
+            logger.error("Ошибка при отправке статистики и закрытии соединения: playerId={}", playerId, e);
         }
     }
 }

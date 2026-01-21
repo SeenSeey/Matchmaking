@@ -118,18 +118,15 @@ public class MessageFormatterService {
 
         if (damageDealt == damageReceived) {
             title = "Ничья";
-            content = String.format("Игра завершилась ничьей!\nНанесено урона: %d\nПолучено урона: %d", 
-                    damageDealt, damageReceived);
+            content = "Игра завершилась ничьей!";
 
         } else if (result.equals("You Won") || damageDealt > damageReceived) {
             title = "Победа!";
-            content = String.format("Поздравляем! Вы одержали победу!\nНанесено урона: %d\nПолучено урона: %d", 
-                    damageDealt, damageReceived);
+            content = "Поздравляем! Вы одержали победу!";
 
         } else {
             title = "Поражение";
-            content = String.format("К сожалению, вы проиграли.\nНанесено урона: %d\nПолучено урона: %d", 
-                    damageDealt, damageReceived);
+            content = "К сожалению, вы проиграли.";
         }
 
         return new GameMessage(
@@ -158,13 +155,7 @@ public class MessageFormatterService {
         }
         gameData.put("players", playersDamage);
 
-        String content = String.format("Ход %d/30\n", tick);
-        if (playersNode.isArray() && playersNode.size() >= 2) {
-            int player1Damage = playersNode.get(0).get("damage").asInt();
-            int player2Damage = playersNode.get(1).get("damage").asInt();
-            content += String.format("Игрок 1: %d урона\nИгрок 2: %d урона", 
-                    player1Damage, player2Damage);
-        }
+        String content = String.format("Ход %d/30", tick);
 
         return new GameMessage(
                 GameMessage.MessageType.GAME_UPDATE,
