@@ -27,11 +27,4 @@ public interface GameApi {
     @PostMapping("/start")
     ResponseEntity<EntityModel<StartGameResponse>> startGame(@Valid @RequestBody GameRequest request);
 
-    @Operation(summary = "Досрочно покинуть игру")
-    @ApiResponse(responseCode = "204", description = "Игра покинута")
-    @ApiResponse(responseCode = "400", description = "Невалидный запрос", content = @Content(schema = @Schema(implementation = StatusResponse.class)))
-    @ApiResponse(responseCode = "404", description = "Игрок не найден или не находится в игре", content = @Content(schema = @Schema(implementation = StatusResponse.class)))
-    @PostMapping("/leave")
-    ResponseEntity<Void> leaveGame(@Valid @RequestBody GameRequest request);
-
 }

@@ -8,11 +8,9 @@ import edu.demo.matchmaking_gateway.service.GameService;
 import jakarta.validation.Valid;
 import org.springframework.hateoas.EntityModel;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
-@CrossOrigin(originPatterns = "*", maxAge = 3600)
 public class GameController implements GameApi {
     private final GameService gameService;
     private final StartGameModelAssembler startGameModelAssembler;
@@ -30,11 +28,5 @@ public class GameController implements GameApi {
         return ResponseEntity
                 .ok()
                 .body(entityModel);
-    }
-
-    @Override
-    public ResponseEntity<Void> leaveGame(@Valid GameRequest request) {
-        gameService.leaveGame(request);
-        return ResponseEntity.noContent().build();
     }
 }

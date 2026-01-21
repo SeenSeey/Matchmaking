@@ -11,7 +11,6 @@ import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
-@CrossOrigin(originPatterns = "*", maxAge = 3600)
 public class PlayerController implements PlayerApi {
     private final PlayerService playerService;
     private final PlayerModelAssembler playerModelAssembler;

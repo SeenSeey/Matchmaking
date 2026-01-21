@@ -5,57 +5,13 @@ type Player {
     rating: Int!
 }
 
-type Game {
-    gameId: ID!
-    firstPlayer: Player!
-    secondPlayer: Player!
-    roomMap: String!
-    gameStartedTime: String!
-}
-
 type StartGame {
     gameKey: ID!
     gameGatewayUrl: String!
 }
 
-type PlayerStatLastGame {
-    player: Player!
-    game: Game!
-    isWon: Boolean!
-    killsAmount: Int!
-    deathsAmount: Int!
-    damageDoneAmount: Int!
-    damageReceivedAmount: Int!
-    dominanceIndicator: Int!
-    playerRatingAfterGame: Int!
-}
-
-type PlayerStatAllTime {
-    player: Player!
-    winsAmount: Int!
-    defeatsAmount: Int!
-}
-
-type PlayerStatPage {
-    content: [PlayerStatAllTime!]!
-    pageNumber: Int!
-    pageSize: Int!
-    totalElements: Int!
-    totalPages: Int!
-    last: Boolean!
-}
-
 type Query {
     playerById(playerId: ID!): Player
-    
-    playerStatLastGame(playerId: ID!): PlayerStatLastGame
-    
-    playerStatAllTime(playerId: ID!): PlayerStatAllTime
-    
-    topPlayers(
-        page: Int = 0,
-        size: Int = 20
-    ): PlayerStatPage
 }
 
 input PlayerInput {
@@ -68,14 +24,8 @@ input StartGameInput {
     playerId: ID!
 }
 
-input LeaveGameInput {
-    playerId: ID!
-}
-
 type Mutation {
     registerPlayer(input: PlayerInput!): Player
     
     startGame(input: StartGameInput!): StartGame
-    
-    leaveGame(input: LeaveGameInput!): Boolean
 }
