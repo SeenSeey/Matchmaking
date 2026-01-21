@@ -1,0 +1,16 @@
+global:
+  scrape_interval: 5s
+
+scrape_configs:
+  - job_name: "matchmaking_app"
+    metrics_path: "/actuator/prometheus"
+    static_configs:
+      - targets:
+          [
+            "matchmaking-gateway:8080",
+            "game-gateway:8083",
+            "game-service:8080",
+            "user-service:8080",
+            "matchmaker-service:8080",
+            "audit-service:8080",
+          ]

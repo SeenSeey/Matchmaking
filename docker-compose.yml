@@ -12,6 +12,8 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
+    networks:
+      - microservices-net
 
   rabbitmq:
     image: rabbitmq:3.13-management
@@ -25,31 +27,170 @@ services:
     volumes:
       - rabbitmq-data:/var/lib/rabbitmq
     healthcheck:
-      test: ["CMD", "rabbitmq-diagnostics", "ping"]
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
       interval: 10s
       timeout: 5s
       retries: 5
+    networks:
+      - microservices-net
 
   mongodb:
     image: mongo:7.0
-    container_name: user-service-mongodb
-    restart: unless-stopped
+    container_name: matchmaking-mongodb
     ports:
       - "27017:27017"
     environment:
       MONGO_INITDB_DATABASE: matchmaking
     volumes:
-      - mongodb_data:/data/db
+      - mongodb-data:/data/db
+    healthcheck:
+      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
     networks:
-      - user-service-network
+      - microservices-net
+
+  zipkin:
+    image: openzipkin/zipkin
+    container_name: matchmaking-zipkin
+    ports:
+      - "9411:9411"
+    networks:
+      - microservices-net
+
+  prometheus:
+    image: prom/prometheus
+    container_name: matchmaking-prometheus
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml
+    ports:
+      - "9091:9090"
+    networks:
+      - microservices-net
+
+  matchmaker-service:
+    build:
+      context: .
+      dockerfile: matchmaker-service/Dockerfile
+    container_name: matchmaker-service
+    environment:
+      - SPRING_RABBITMQ_HOST=rabbitmq
+      - SPRING_DATA_REDIS_HOST=redis
+      - MANAGEMENT_ZIPKIN_TRACING_ENDPOINT=http://zipkin:9411/api/v2/spans
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - microservices-net
+
+  game-service:
+    build:
+      context: .
+      dockerfile: game-service/Dockerfile
+    container_name: game-service
+    environment:
+      - SPRING_RABBITMQ_HOST=rabbitmq
+      - SPRING_DATA_REDIS_HOST=redis
+      - MANAGEMENT_ZIPKIN_TRACING_ENDPOINT=http://zipkin:9411/api/v2/spans
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - microservices-net
+
+  user-service:
+    build:
+      context: .
+      dockerfile: user-service/Dockerfile
+    container_name: user-service
+    ports:
+      - "9090:9090"
+      - "8081:8080"
+    environment:
+      - SPRING_RABBITMQ_HOST=rabbitmq
+      - SPRING_DATA_MONGODB_HOST=mongodb
+      - GRPC_SERVER_PORT=9090
+      - SERVER_PORT=8080
+      - MANAGEMENT_ZIPKIN_TRACING_ENDPOINT=http://zipkin:9411/api/v2/spans
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+      mongodb:
+        condition: service_healthy
+    networks:
+      - microservices-net
+
+  game-gateway:
+    build:
+      context: .
+      dockerfile: game-gateway/Dockerfile
+    container_name: game-gateway
+    ports:
+      - "8083:8083"
+    environment:
+      - SERVER_PORT=8083
+      - SPRING_RABBITMQ_HOST=rabbitmq
+      - SPRING_DATA_REDIS_HOST=redis
+      - MANAGEMENT_ZIPKIN_TRACING_ENDPOINT=http://zipkin:9411/api/v2/spans
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - microservices-net
+
+  matchmaking-gateway:
+    build:
+      context: .
+      dockerfile: matchmaking-gateway/Dockerfile
+    container_name: matchmaking-gateway
+    ports:
+      - "8080:8080"
+    environment:
+      - SPRING_RABBITMQ_HOST=rabbitmq
+      - SPRING_DATA_REDIS_HOST=redis
+      - GAME_GATEWAY_URL=ws://localhost:8083/ws
+      - GRPC_CLIENT_USER_SERVICE_ADDRESS=static://user-service:9090
+      - MANAGEMENT_ZIPKIN_TRACING_ENDPOINT=http://zipkin:9411/api/v2/spans
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      user-service:
+        condition: service_started
+      game-gateway:
+        condition: service_started
+    networks:
+      - microservices-net
+
+  audit-service:
+    build:
+      context: .
+      dockerfile: audit-service/Dockerfile
+    container_name: audit-service
+    ports:
+      - "8082:8080"
+    environment:
+      - SPRING_RABBITMQ_HOST=rabbitmq
+      - MANAGEMENT_ZIPKIN_TRACING_ENDPOINT=http://zipkin:9411/api/v2/spans
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+    networks:
+      - microservices-net
 
 volumes:
   redis-data:
   rabbitmq-data:
-  mongodb_data:
-    driver: local
+  mongodb-data:
 
 networks:
-  user-service-network:
+  microservices-net:
     driver: bridge
-
