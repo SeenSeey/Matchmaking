@@ -1,6 +1,6 @@
 package edu.demo.game_service.listener;
 
-import com.example.events_contract.MatchFoundEvent;
+import com.example.events_contract.PlayerDisconnectedEvent;
 import edu.demo.game_service.config.RabbitMQConfig;
 import edu.demo.game_service.service.GameService;
 import org.slf4j.Logger;
@@ -16,30 +16,31 @@ import java.io.IOException;
 import java.util.concurrent.ConcurrentHashMap;
 
 @Component
-public class MatchFoundEventListener {
-    private static final Logger logger = LoggerFactory.getLogger(MatchFoundEventListener.class);
+public class PlayerDisconnectedEventListener {
+    private static final Logger logger = LoggerFactory.getLogger(PlayerDisconnectedEventListener.class);
 
     private final GameService gameService;
     private final ConcurrentHashMap<String, Boolean> processedEvents = new ConcurrentHashMap<>();
 
-    public MatchFoundEventListener(GameService gameService) {
+    public PlayerDisconnectedEventListener(GameService gameService) {
         this.gameService = gameService;
     }
 
     @RabbitListener(
-            queues = RabbitMQConfig.MATCH_FOUND_QUEUE,
+            queues = RabbitMQConfig.PLAYER_DISCONNECTED_QUEUE,
             containerFactory = "rabbitListenerContainerFactory"
     )
-    public void handleMatchFoundEvent(
-            MatchFoundEvent event,
+    public void handlePlayerDisconnectedEvent(
+            PlayerDisconnectedEvent event,
             Message message,
             Channel channel,
             @Header(AmqpHeaders.DELIVERY_TAG) long deliveryTag) throws IOException {
 
-        String eventKey = event.matchId() + "_" + deliveryTag;
+        String eventKey = event.matchId() + "_" + event.disconnectedPlayerId() + "_" + deliveryTag;
 
         if (processedEvents.containsKey(eventKey)) {
-            logger.warn("Дубликат события игнорирован: eventKey={}, matchId={}", eventKey, event.matchId());
+            logger.warn("Дубликат события игнорирован: eventKey={}, matchId={}, playerId={}", 
+                    eventKey, event.matchId(), event.disconnectedPlayerId());
             channel.basicAck(deliveryTag, false);
             return;
         }
@@ -56,29 +57,16 @@ public class MatchFoundEventListener {
             logger.debug("Очищено {} записей из кэша обработанных событий", removed);
         }
 
-        logger.info("Получено событие MatchFoundEvent из RabbitMQ: matchId={}, player1Id={}, player2Id={}, region={}", 
-                event.matchId(), event.player1Id(), event.player2Id(), event.region());
-
-        System.out.println("========================================");
-        System.out.println("MatchFoundEvent получен:");
-        System.out.println("  Match ID: " + event.matchId());
-        System.out.println("  Player 1 ID: " + event.player1Id());
-        System.out.println("  Player 2 ID: " + event.player2Id());
-        System.out.println("  Region: " + event.region());
-        System.out.println("========================================");
+        logger.info("Получено событие PlayerDisconnectedEvent: matchId={}, disconnectedPlayerId={}", 
+                event.matchId(), event.disconnectedPlayerId());
 
         try {
-            gameService.startGame(
-                    event.matchId(),
-                    event.player1Id(),
-                    event.player2Id(),
-                    event.region()
-            );
+            gameService.finishGameOnDisconnect(event.matchId(), event.disconnectedPlayerId());
             channel.basicAck(deliveryTag, false);
             logger.debug("Событие успешно обработано: eventKey={}", eventKey);
         } catch (Exception e) {
-            logger.error("Ошибка при обработке MatchFoundEvent: eventKey={}, matchId={}", 
-                    eventKey, event.matchId(), e);
+            logger.error("Ошибка при обработке PlayerDisconnectedEvent: eventKey={}, matchId={}, playerId={}", 
+                    eventKey, event.matchId(), event.disconnectedPlayerId(), e);
             processedEvents.remove(eventKey);
             channel.basicNack(deliveryTag, false, false);
         }

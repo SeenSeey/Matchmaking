@@ -58,6 +58,7 @@ public class PlayerSearchingOpponentListener {
                 processedEvents.remove(key);
                 removed++;
             }
+            logger.debug("Очищено {} записей из кэша обработанных событий", removed);
         }
 
         logger.info("Получено событие PlayerSearchingOpponentEvent: playerId={}, nickname={}, rating={}, region={}", 
@@ -92,7 +93,7 @@ public class PlayerSearchingOpponentListener {
         } catch (Exception e) {
             logger.error("Ошибка при обработке события: eventKey={}", eventKey, e);
             processedEvents.remove(eventKey);
-            channel.basicNack(deliveryTag, false, true);
+            channel.basicNack(deliveryTag, false, false);
         }
     }
 }

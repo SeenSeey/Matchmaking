@@ -1,8 +1,10 @@
 package edu.demo.game_gateway.handler;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import edu.demo.game_gateway.dto.GameMessage;
 import edu.demo.game_gateway.dto.PlayerInfo;
 import edu.demo.game_gateway.service.EventPublisherService;
+import edu.demo.game_gateway.service.MessageFormatterService;
 import edu.demo.game_gateway.service.TicketValidationService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -30,20 +32,25 @@ public class NotificationWebSocketHandler extends TextWebSocketHandler {
     private final RedisMessageListenerContainer redisMessageListenerContainer;
     private final ObjectMapper objectMapper;
     private final EventPublisherService eventPublisherService;
+    private final MessageFormatterService messageFormatterService;
 
     private final Map<String, WebSocketSession> activeSessions = new ConcurrentHashMap<>();
     private final Map<String, String> sessionToPlayerId = new ConcurrentHashMap<>();
+    private final Map<String, String> playerIdToMatchId = new ConcurrentHashMap<>();
+    private final Map<String, Map<String, MessageListener>> gameUpdatesSubscriptions = new ConcurrentHashMap<>();
 
     public NotificationWebSocketHandler(TicketValidationService ticketValidationService,
                                       StringRedisTemplate redisTemplate,
                                       RedisMessageListenerContainer redisMessageListenerContainer,
                                       ObjectMapper objectMapper,
-                                      EventPublisherService eventPublisherService) {
+                                      EventPublisherService eventPublisherService,
+                                      MessageFormatterService messageFormatterService) {
         this.ticketValidationService = ticketValidationService;
         this.redisTemplate = redisTemplate;
         this.redisMessageListenerContainer = redisMessageListenerContainer;
         this.objectMapper = objectMapper;
         this.eventPublisherService = eventPublisherService;
+        this.messageFormatterService = messageFormatterService;
     }
 
     @Override
@@ -74,16 +81,28 @@ public class NotificationWebSocketHandler extends TextWebSocketHandler {
             @Override
             public void onMessage(Message message, byte[] pattern) {
                 try {
-                    String messageText = new String(message.getBody());
+                    String rawMessage = new String(message.getBody());
                     logger.info("Получено сообщение из Redis Pub/Sub: topic={}, message={}, sessionId={}", 
-                            topic, messageText, session.getId());
-                    sendMessage(session, messageText);
-                    
-                    // Если получено сообщение о найденной паре, подписываемся на game_updates_{match_id}
-                    if (messageText.contains("Match ID:")) {
-                        String matchId = extractMatchId(messageText);
-                        if (matchId != null) {
-                            subscribeToGameUpdates(session, matchId);
+                            topic, rawMessage, session.getId());
+
+                    GameMessage formattedMessage = messageFormatterService.formatMessage(rawMessage, topic);
+                    sendFormattedMessage(session, formattedMessage);
+
+                    if (formattedMessage.getType() == GameMessage.MessageType.MATCH_FOUND) {
+                        Object data = formattedMessage.getData();
+                        if (data instanceof Map) {
+                            @SuppressWarnings("unchecked")
+                            Map<String, String> dataMap = (Map<String, String>) data;
+                            String matchId = dataMap.get("matchId");
+                            if (matchId != null) {
+                                String playerId = sessionToPlayerId.get(session.getId());
+                                if (playerId != null) {
+                                    playerIdToMatchId.put(playerId, matchId);
+                                    logger.info("Связь playerId -> matchId установлена: playerId={}, matchId={}", 
+                                            playerId, matchId);
+                                }
+                                subscribeToGameUpdates(session, matchId);
+                            }
                         }
                     }
                 } catch (Exception e) {
@@ -96,8 +115,8 @@ public class NotificationWebSocketHandler extends TextWebSocketHandler {
         logger.info("Подписка на Redis топик создана: topic={}, sessionId={}, playerId={}", 
                 topic, session.getId(), playerInfo.getPlayerId());
 
-        String connectionMessage = "Соединение установлено";
-        sendMessage(session, connectionMessage);
+        GameMessage connectionMessage = messageFormatterService.createConnectionMessage();
+        sendFormattedMessage(session, connectionMessage);
         logger.info("Соединение подтверждено: sessionId={}, playerId={}, ticketId={}", 
                 session.getId(), playerInfo.getPlayerId(), ticketId);
 
@@ -108,8 +127,8 @@ public class NotificationWebSocketHandler extends TextWebSocketHandler {
                 playerInfo.getRegion()
         );
 
-        String searchingMessage = "Поиск соперника";
-        sendMessage(session, searchingMessage);
+        GameMessage searchingMessage = messageFormatterService.createSearchingMessage();
+        sendFormattedMessage(session, searchingMessage);
         logger.info("Сообщение 'Поиск соперника' отправлено пользователю: sessionId={}, playerId={}",
                 session.getId(), playerInfo.getPlayerId());
     }
@@ -126,9 +145,33 @@ public class NotificationWebSocketHandler extends TextWebSocketHandler {
         String playerId = sessionToPlayerId.remove(sessionId);
 
         activeSessions.entrySet().removeIf(entry -> entry.getValue().getId().equals(sessionId));
-        
-        logger.info("WebSocket соединение закрыто: sessionId={}, playerId={}, status={}", 
-                sessionId, playerId, status);
+
+        String matchId = null;
+        if (playerId != null) {
+            matchId = playerIdToMatchId.remove(playerId);
+        }
+
+        gameUpdatesSubscriptions.forEach((matchIdKey, listeners) -> {
+            if (listeners.containsKey(sessionId)) {
+                unsubscribeFromGameUpdates(sessionId, matchIdKey);
+            }
+        });
+
+        if (playerId != null && matchId != null) {
+            logger.warn("Игрок отключился во время игры: sessionId={}, playerId={}, matchId={}, status={}", 
+                    sessionId, playerId, matchId, status);
+            try {
+                eventPublisherService.publishPlayerDisconnectedEvent(matchId, playerId);
+                logger.info("Событие PlayerDisconnectedEvent отправлено: matchId={}, playerId={}", 
+                        matchId, playerId);
+            } catch (Exception e) {
+                logger.error("Ошибка при отправке события PlayerDisconnectedEvent: matchId={}, playerId={}", 
+                        matchId, playerId, e);
+            }
+        } else {
+            logger.info("WebSocket соединение закрыто: sessionId={}, playerId={}, status={}", 
+                    sessionId, playerId, status);
+        }
     }
 
     private String getTicketIdFromSession(WebSocketSession session) {
@@ -154,35 +197,80 @@ public class NotificationWebSocketHandler extends TextWebSocketHandler {
         }
     }
 
-    private String extractMatchId(String message) {
-        // Извлекаем match_id из сообщения вида "Пара найдена! Match ID: {match_id}"
-        if (message.contains("Match ID:")) {
-            String[] parts = message.split("Match ID:");
-            if (parts.length > 1) {
-                return parts[1].trim();
+    private void sendFormattedMessage(WebSocketSession session, GameMessage message) {
+        try {
+            if (session.isOpen()) {
+                String jsonMessage = objectMapper.writeValueAsString(message);
+                session.sendMessage(new TextMessage(jsonMessage));
+                logger.debug("Отформатированное сообщение отправлено: type={}, sessionId={}", 
+                        message.getType(), session.getId());
             }
+        } catch (Exception e) {
+            logger.error("Ошибка при отправке отформатированного сообщения: sessionId={}", 
+                    session.getId(), e);
         }
-        return null;
     }
 
     private void subscribeToGameUpdates(WebSocketSession session, String matchId) {
+        String sessionId = session.getId();
+        String playerId = sessionToPlayerId.get(sessionId);
         String gameUpdatesTopic = "game_updates_" + matchId;
+
+        if (gameUpdatesSubscriptions.containsKey(matchId) && 
+            gameUpdatesSubscriptions.get(matchId).containsKey(sessionId)) {
+            logger.debug("Сессия уже подписана на game_updates: sessionId={}, matchId={}, playerId={}", 
+                    sessionId, matchId, playerId);
+            return;
+        }
+
         MessageListener gameUpdatesListener = new MessageListener() {
             @Override
             public void onMessage(Message message, byte[] pattern) {
                 try {
-                    String messageText = new String(message.getBody());
-                    logger.info("Получено сообщение из game_updates: topic={}, message={}, sessionId={}", 
-                            gameUpdatesTopic, messageText, session.getId());
-                    sendMessage(session, messageText);
+                    String rawMessage = new String(message.getBody());
+                    logger.info("Получено сообщение из game_updates: topic={}, message={}, sessionId={}, playerId={}", 
+                            gameUpdatesTopic, rawMessage, sessionId, playerId);
+
+                    if (session.isOpen()) {
+                        GameMessage formattedMessage = messageFormatterService.formatMessage(rawMessage, gameUpdatesTopic);
+                        sendFormattedMessage(session, formattedMessage);
+                        logger.debug("Сообщение отправлено через WebSocket: sessionId={}, playerId={}, matchId={}", 
+                                sessionId, playerId, matchId);
+                    } else {
+                        logger.warn("Сессия закрыта, удаляем подписку: sessionId={}, matchId={}, playerId={}", 
+                                sessionId, matchId, playerId);
+                        unsubscribeFromGameUpdates(sessionId, matchId);
+                    }
                 } catch (Exception e) {
-                    logger.error("Ошибка при обработке сообщения из game_updates: topic={}", gameUpdatesTopic, e);
+                    logger.error("Ошибка при обработке сообщения из game_updates: topic={}, sessionId={}, playerId={}", 
+                            gameUpdatesTopic, sessionId, playerId, e);
                 }
             }
         };
-        
+
+        gameUpdatesSubscriptions.computeIfAbsent(matchId, k -> new ConcurrentHashMap<>())
+                .put(sessionId, gameUpdatesListener);
+
         redisMessageListenerContainer.addMessageListener(gameUpdatesListener, new ChannelTopic(gameUpdatesTopic));
-        logger.info("Подписка на game_updates создана: topic={}, sessionId={}, matchId={}", 
-                gameUpdatesTopic, session.getId(), matchId);
+        
+        int totalSubscriptions = gameUpdatesSubscriptions.get(matchId).size();
+        logger.info("Подписка на game_updates создана: topic={}, sessionId={}, matchId={}, playerId={}, totalSubscriptions={}", 
+                gameUpdatesTopic, sessionId, matchId, playerId, totalSubscriptions);
+    }
+    
+    private void unsubscribeFromGameUpdates(String sessionId, String matchId) {
+        Map<String, MessageListener> listeners = gameUpdatesSubscriptions.get(matchId);
+        if (listeners != null) {
+            MessageListener listener = listeners.remove(sessionId);
+            if (listener != null) {
+                String gameUpdatesTopic = "game_updates_" + matchId;
+                redisMessageListenerContainer.removeMessageListener(listener, new ChannelTopic(gameUpdatesTopic));
+                logger.info("Отписка от game_updates: sessionId={}, matchId={}", sessionId, matchId);
+            }
+            
+            if (listeners.isEmpty()) {
+                gameUpdatesSubscriptions.remove(matchId);
+            }
+        }
     }
 }

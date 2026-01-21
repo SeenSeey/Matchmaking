@@ -89,10 +89,10 @@
             border: 1px solid #ddd;
             border-radius: 5px;
             padding: 15px;
-            height: 300px;
+            height: 400px;
             overflow-y: auto;
-            font-family: monospace;
-            font-size: 12px;
+            font-family: Arial, sans-serif;
+            font-size: 13px;
         }
         .message {
             margin-bottom: 10px;
@@ -117,9 +117,63 @@
             border-left: 3px solid #ff9800;
             color: #e65100;
         }
+        .message.connection {
+            background-color: #e8f5e9;
+            border-left: 4px solid #4CAF50;
+        }
+        .message.searching {
+            background-color: #fff9c4;
+            border-left: 4px solid #ffc107;
+        }
+        .message.match-found {
+            background-color: #e1bee7;
+            border-left: 4px solid #9c27b0;
+        }
+        .message.game-ready {
+            background-color: #c5e1a5;
+            border-left: 4px solid #689f38;
+        }
+        .message.game-update {
+            background-color: #b3e5fc;
+            border-left: 4px solid #0288d1;
+        }
+        .message.game-over {
+            background-color: #ffccbc;
+            border-left: 4px solid #ff5722;
+        }
+        .message.game-result {
+            background-color: #f8bbd0;
+            border-left: 4px solid #e91e63;
+        }
         .timestamp {
             color: #999;
             font-size: 10px;
+        }
+        .message-title {
+            font-weight: bold;
+            font-size: 14px;
+            margin-bottom: 5px;
+            color: #333;
+        }
+        .message-content {
+            white-space: pre-line;
+            margin-bottom: 5px;
+            color: #555;
+        }
+        .message-data {
+            margin-top: 8px;
+            padding: 8px;
+            background-color: rgba(0,0,0,0.05);
+            border-radius: 4px;
+            font-size: 11px;
+            font-family: monospace;
+        }
+        .data-item {
+            margin: 3px 0;
+        }
+        .data-label {
+            font-weight: bold;
+            color: #666;
         }
     </style>
 </head>
@@ -179,6 +233,53 @@
             messagesDiv.scrollTop = messagesDiv.scrollHeight;
         }
 
+        function formatGameMessage(gameMessage) {
+            const timestamp = new Date(gameMessage.timestamp).toLocaleTimeString();
+            const typeClass = gameMessage.type.toLowerCase().replace(/_/g, '-');
+            
+            let html = `<div class="message ${typeClass}">`;
+            html += `<span class="timestamp">[${timestamp}]</span>`;
+            html += `<div class="message-title">${gameMessage.title}</div>`;
+            html += `<div class="message-content">${gameMessage.content}</div>`;
+            
+            if (gameMessage.data) {
+                html += `<div class="message-data">`;
+                
+                if (gameMessage.type === 'GAME_UPDATE' && gameMessage.data.players) {
+                    html += `<div class="data-item"><span class="data-label">Ход:</span> ${gameMessage.data.tick}/30</div>`;
+                    html += `<div class="data-item"><span class="data-label">Осталось времени:</span> ${gameMessage.data.timeRemaining} сек</div>`;
+                    html += `<div class="data-item"><span class="data-label">Урон игроков:</span>`;
+                    for (const [playerId, damage] of Object.entries(gameMessage.data.players)) {
+                        const shortId = playerId.substring(0, 8) + '...';
+                        html += `<br>&nbsp;&nbsp;${shortId}: ${damage}`;
+                    }
+                    html += `</div>`;
+                } else if (gameMessage.type === 'GAME_RESULT') {
+                    html += `<div class="data-item"><span class="data-label">Нанесено урона:</span> ${gameMessage.data.damageDealt}</div>`;
+                    html += `<div class="data-item"><span class="data-label">Получено урона:</span> ${gameMessage.data.damageReceived}</div>`;
+                } else if (gameMessage.type === 'MATCH_FOUND' && gameMessage.data.matchId) {
+                    html += `<div class="data-item"><span class="data-label">Match ID:</span> ${gameMessage.data.matchId}</div>`;
+                } else {
+                    html += `<div class="data-item">${JSON.stringify(gameMessage.data, null, 2)}</div>`;
+                }
+                
+                html += `</div>`;
+            }
+            
+            html += `</div>`;
+            return html;
+        }
+
+        function addGameMessage(gameMessage) {
+            const messagesDiv = document.getElementById('messages');
+            const messageHtml = formatGameMessage(gameMessage);
+            
+            const tempDiv = document.createElement('div');
+            tempDiv.innerHTML = messageHtml;
+            messagesDiv.appendChild(tempDiv.firstElementChild);
+            messagesDiv.scrollTop = messagesDiv.scrollHeight;
+        }
+
         function connect() {
             const gameGatewayUrl = document.getElementById('gameGatewayUrl').value;
             const ticketId = document.getElementById('ticketId').value.trim();
@@ -203,7 +304,6 @@
                 ws.onopen = function(event) {
                     reconnectAttempts = 0;
                     updateStatus('connected', 'Подключено');
-                    addMessage('received', 'Соединение установлено');
                     document.getElementById('connectBtn').disabled = true;
                     document.getElementById('disconnectBtn').disabled = false;
                     document.getElementById('messageInput').disabled = false;
@@ -211,7 +311,22 @@
                 };
                 
                 ws.onmessage = function(event) {
-                    addMessage('received', `Получено: ${event.data}`);
+                    try {
+                        const data = event.data;
+                        
+                        if (data.trim().startsWith('{')) {
+                            const gameMessage = JSON.parse(data);
+                            if (gameMessage.type && gameMessage.title) {
+                                addGameMessage(gameMessage);
+                            } else {
+                                addMessage('received', `Получено: ${data}`);
+                            }
+                        } else {
+                            addMessage('received', data);
+                        }
+                    } catch (e) {
+                        addMessage('received', `Получено: ${event.data}`);
+                    }
                 };
                 
                 ws.onerror = function(error) {

@@ -1,5 +1,6 @@
 package edu.demo.game_gateway.service;
 
+import com.example.events_contract.PlayerDisconnectedEvent;
 import com.example.events_contract.PlayerSearchingOpponentEvent;
 import edu.demo.game_gateway.config.RabbitMQConfig;
 import org.slf4j.Logger;
@@ -21,12 +22,25 @@ public class EventPublisherService {
         PlayerSearchingOpponentEvent event = new PlayerSearchingOpponentEvent(playerId, nickname, rating, region);
         
         try {
-            rabbitTemplate.convertAndSend(RabbitMQConfig.PLAYER_SEARCHING_QUEUE, event);
+            rabbitTemplate.convertAndSend(RabbitMQConfig.EXCHANGE, RabbitMQConfig.PLAYER_SEARCHING_QUEUE, event);
             logger.info("Событие PlayerSearchingOpponentEvent отправлено: playerId={}, nickname={}, rating={}, region={}", 
                     playerId, nickname, rating, region);
         } catch (Exception e) {
             logger.error("Ошибка при отправке события PlayerSearchingOpponentEvent: playerId={}", playerId, e);
             throw new RuntimeException("Failed to publish event", e);
+        }
+    }
+
+    public void publishPlayerDisconnectedEvent(String matchId, String playerId) {
+        PlayerDisconnectedEvent event = new PlayerDisconnectedEvent(matchId, playerId);
+        
+        try {
+            rabbitTemplate.convertAndSend(RabbitMQConfig.EXCHANGE, RabbitMQConfig.PLAYER_DISCONNECTED_QUEUE, event);
+            logger.info("Событие PlayerDisconnectedEvent отправлено: matchId={}, playerId={}", matchId, playerId);
+        } catch (Exception e) {
+            logger.error("Ошибка при отправке события PlayerDisconnectedEvent: matchId={}, playerId={}", 
+                    matchId, playerId, e);
+            throw new RuntimeException("Failed to publish player disconnected event", e);
         }
     }
 }

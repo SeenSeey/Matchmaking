@@ -30,7 +30,7 @@ public class MatchEventPublisherService {
         redisNotificationService.notifyPlayers(player1Id, player2Id, matchId);
 
         try {
-            rabbitTemplate.convertAndSend(RabbitMQConfig.MATCH_FOUND_QUEUE, event);
+            rabbitTemplate.convertAndSend(RabbitMQConfig.EXCHANGE, RabbitMQConfig.MATCH_FOUND_QUEUE, event);
             logger.info("Событие MatchFoundEvent отправлено в RabbitMQ: matchId={}, player1Id={}, player2Id={}, region={}", 
                     matchId, player1Id, player2Id, region);
         } catch (Exception e) {

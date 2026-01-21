@@ -1,9 +1,8 @@
-package edu.demo.game_service.config;
+package edu.demo.user_service.config;
 
 import org.springframework.amqp.core.*;
 import org.springframework.amqp.rabbit.config.SimpleRabbitListenerContainerFactory;
 import org.springframework.amqp.rabbit.connection.ConnectionFactory;
-import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.amqp.support.converter.Jackson2JsonMessageConverter;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -11,30 +10,13 @@ import org.springframework.context.annotation.Configuration;
 @Configuration
 public class RabbitMQConfig {
 
-    public static final String MATCH_FOUND_QUEUE = "match.found";
     public static final String GAME_FINISHED_QUEUE = "game.finished";
-    public static final String PLAYER_DISCONNECTED_QUEUE = "player.disconnected";
-    public static final String MATCH_FOUND_DLQ = "match.found.dlq";
     public static final String GAME_FINISHED_DLQ = "game.finished.dlq";
-    public static final String PLAYER_DISCONNECTED_DLQ = "player.disconnected.dlq";
     public static final String EXCHANGE = "matchmaking.exchange";
 
     @Bean
     public DirectExchange exchange() {
         return new DirectExchange(EXCHANGE);
-    }
-
-    @Bean
-    public Queue matchFoundQueue() {
-        return QueueBuilder.durable(MATCH_FOUND_QUEUE)
-                .withArgument("x-dead-letter-exchange", "")
-                .withArgument("x-dead-letter-routing-key", MATCH_FOUND_DLQ)
-                .build();
-    }
-
-    @Bean
-    public Queue matchFoundDlq() {
-        return QueueBuilder.durable(MATCH_FOUND_DLQ).build();
     }
 
     @Bean
@@ -51,26 +33,6 @@ public class RabbitMQConfig {
     }
 
     @Bean
-    public Queue playerDisconnectedQueue() {
-        return QueueBuilder.durable(PLAYER_DISCONNECTED_QUEUE)
-                .withArgument("x-dead-letter-exchange", "")
-                .withArgument("x-dead-letter-routing-key", PLAYER_DISCONNECTED_DLQ)
-                .build();
-    }
-
-    @Bean
-    public Queue playerDisconnectedDlq() {
-        return QueueBuilder.durable(PLAYER_DISCONNECTED_DLQ).build();
-    }
-
-    @Bean
-    public Binding matchFoundBinding() {
-        return BindingBuilder.bind(matchFoundQueue())
-                .to(exchange())
-                .with(MATCH_FOUND_QUEUE);
-    }
-
-    @Bean
     public Binding gameFinishedBinding() {
         return BindingBuilder.bind(gameFinishedQueue())
                 .to(exchange())
@@ -78,24 +40,8 @@ public class RabbitMQConfig {
     }
 
     @Bean
-    public Binding playerDisconnectedBinding() {
-        return BindingBuilder.bind(playerDisconnectedQueue())
-                .to(exchange())
-                .with(PLAYER_DISCONNECTED_QUEUE);
-    }
-
-    @Bean
     public Jackson2JsonMessageConverter messageConverter() {
         return new Jackson2JsonMessageConverter();
-    }
-
-    @Bean
-    public RabbitTemplate rabbitTemplate(ConnectionFactory connectionFactory, 
-                                        Jackson2JsonMessageConverter messageConverter) {
-        RabbitTemplate template = new RabbitTemplate(connectionFactory);
-        template.setMessageConverter(messageConverter);
-        template.setMandatory(true);
-        return template;
     }
 
     @Bean
